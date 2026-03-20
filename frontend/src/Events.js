@@ -3,9 +3,13 @@ import { useEffect, useState } from 'react';
 function Events() {
   const [events, setEvents] = useState([]);
 
-  // 🔐 Check admin
-  const isAdmin = localStorage.getItem("isAdmin");
-  const token = isAdmin ? "secret123" : "";
+  // ✅ FIXED ADMIN CHECK (VERY IMPORTANT)
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+  const [location, setLocation] = useState('');
 
   // Fetch events
   const fetchData = () => {
@@ -18,15 +22,10 @@ function Events() {
     fetchData();
   }, []);
 
-  // Add event
+  // Add event (ADMIN ONLY)
   const addEvent = () => {
-    const title = document.getElementById('title').value;
-    const description = document.getElementById('description').value;
-    const event_date = document.getElementById('date').value;
-    const location = document.getElementById('location').value;
-
-    if (!title || !description || !event_date || !location) {
-      alert("Please fill all fields");
+    if (!isAdmin) {
+      alert("Unauthorized ❌");
       return;
     }
 
@@ -34,48 +33,53 @@ function Events() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token
+        'x-admin-token': 'secret123'
       },
-      body: JSON.stringify({ title, description, event_date, location })
+      body: JSON.stringify({
+        title,
+        description,
+        event_date: date,
+        location
+      })
     })
-    .then(res => {
-      if (res.status === 403) {
-        alert("Unauthorized! Please login as admin.");
-        return;
-      }
-      return res.json();
-    })
-    .then(() => {
-      fetchData();
-
-      // Clear inputs
-      document.getElementById('title').value = "";
-      document.getElementById('description').value = "";
-      document.getElementById('date').value = "";
-      document.getElementById('location').value = "";
-    });
+      .then(res => {
+        if (res.status === 403) {
+          alert("Unauthorized ❌");
+          return;
+        }
+        return res.json();
+      })
+      .then(() => {
+        setTitle('');
+        setDescription('');
+        setDate('');
+        setLocation('');
+        fetchData();
+      });
   };
 
-  // Delete event
+  // Delete event (ADMIN ONLY)
   const deleteEvent = (id) => {
+    if (!isAdmin) {
+      alert("Unauthorized ❌");
+      return;
+    }
+
     if (!window.confirm("Delete this event?")) return;
 
     fetch(`https://cabagan-backend.onrender.com/events/${id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': token
+        'x-admin-token': 'secret123'
       }
     })
-    .then(res => {
-      if (res.status === 403) {
-        alert("Unauthorized! Please login as admin.");
-        return;
-      }
-      return res.json();
-    })
-    .then(() => {
-      fetchData();
-    });
+      .then(res => {
+        if (res.status === 403) {
+          alert("Unauthorized ❌");
+          return;
+        }
+        fetchData();
+      });
   };
 
   return (
@@ -86,23 +90,57 @@ function Events() {
     }}>
       <h1>Cabagan Events</h1>
 
-      {/* 🔐 ADMIN ONLY: ADD EVENT */}
+      {/* ✅ ADMIN ONLY FORM */}
       {isAdmin && (
         <div style={{
           background: 'white',
-          padding: '15px',
-          marginBottom: '20px',
+          padding: '20px',
           borderRadius: '10px',
+          marginBottom: '20px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           <h3>Add Event</h3>
 
-          <input id="title" placeholder="Title" /><br /><br />
-          <input id="description" placeholder="Description" /><br /><br />
-          <input id="date" type="date" /><br /><br />
-          <input id="location" placeholder="Location" /><br /><br />
+          <input
+            placeholder="Title"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+          />
 
-          <button onClick={addEvent}>Add Event</button>
+          <input
+            placeholder="Description"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+          />
+
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            style={{ display: 'block', marginBottom: '10px', padding: '8px' }}
+          />
+
+          <input
+            placeholder="Location"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+          />
+
+          <button
+            onClick={addEvent}
+            style={{
+              background: 'green',
+              color: 'white',
+              padding: '10px 15px',
+              border: 'none',
+              borderRadius: '5px'
+            }}
+          >
+            Add Event
+          </button>
         </div>
       )}
 
@@ -122,13 +160,19 @@ function Events() {
             <p>{e.description}</p>
             <small>{e.event_date} | {e.location}</small>
 
-            {/* 🔐 ADMIN ONLY: DELETE */}
+            {/* ✅ ADMIN ONLY DELETE */}
             {isAdmin && (
               <div>
-                <br />
                 <button
-                  style={{ background: 'red', color: 'white' }}
                   onClick={() => deleteEvent(e.id)}
+                  style={{
+                    marginTop: '10px',
+                    background: 'red',
+                    color: 'white',
+                    padding: '5px 10px',
+                    border: 'none',
+                    borderRadius: '5px'
+                  }}
                 >
                   Delete
                 </button>
