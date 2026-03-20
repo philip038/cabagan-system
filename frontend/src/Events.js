@@ -16,7 +16,9 @@ function Events() {
       .then(data => setEvents(data));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // 📸 convert image
   const handleImage = (e) => {
@@ -80,13 +82,17 @@ function Events() {
       )}
 
       {events.map(e => (
-        <div key={e.id} style={{ background: 'white', padding: '20px', marginBottom: '10px' }}>
+        <div key={e.id} style={{ background: 'white', padding: '20px', marginBottom: '10px', borderRadius: '10px' }}>
           <h3>{e.title}</h3>
           <p>{e.description}</p>
           <small>{e.event_date} | {e.location}</small>
 
           {e.image && (
-            <img src={e.image} style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }} />
+            <img
+              src={e.image}
+              alt={e.title}   // ✅ FIXED
+              style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }}
+            />
           )}
         </div>
       ))}

@@ -14,7 +14,9 @@ function Announcements() {
       .then(data => setAnnouncements(data));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleImage = (e) => {
     const file = e.target.files[0];
@@ -71,12 +73,16 @@ function Announcements() {
       )}
 
       {announcements.map(a => (
-        <div key={a.id} style={{ background: 'white', padding: '20px', marginBottom: '10px' }}>
+        <div key={a.id} style={{ background: 'white', padding: '20px', marginBottom: '10px', borderRadius: '10px' }}>
           <h3>{a.title}</h3>
           <p>{a.content}</p>
 
           {a.image && (
-            <img src={a.image} style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }} />
+            <img
+              src={a.image}
+              alt={a.title}   // ✅ FIXED
+              style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }}
+            />
           )}
         </div>
       ))}
