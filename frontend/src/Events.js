@@ -20,7 +20,7 @@ function Events() {
     fetchData();
   }, []);
 
-  // 📸 convert image
+  // 📸 Convert image
   const handleImage = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -32,9 +32,10 @@ function Events() {
     if (file) reader.readAsDataURL(file);
   };
 
+  // ➕ Add event
   const addEvent = () => {
     if (!title || !description || !date || !location) {
-      alert("Fill all fields ❌");
+      alert("Please fill all fields ❌");
       return;
     }
 
@@ -66,10 +67,17 @@ function Events() {
 
   return (
     <div style={{ padding: '30px', background: '#f4f6f9', minHeight: '100vh' }}>
-      <h1>🎉 Events</h1>
+      <h1>🎉 Cabagan Events</h1>
 
+      {/* ADMIN FORM */}
       {isAdmin && (
-        <div style={{ background: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px' }}>
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
           <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} /><br /><br />
           <input placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} /><br /><br />
           <input type="date" value={date} onChange={e => setDate(e.target.value)} /><br /><br />
@@ -81,21 +89,56 @@ function Events() {
         </div>
       )}
 
-      {events.map(e => (
-        <div key={e.id} style={{ background: 'white', padding: '20px', marginBottom: '10px', borderRadius: '10px' }}>
-          <h3>{e.title}</h3>
-          <p>{e.description}</p>
-          <small>{e.event_date} | {e.location}</small>
+      {/* EVENTS LIST */}
+      {[...events]
+        .sort((a, b) => b.pinned - a.pinned)
+        .map(e => (
+          <div
+            key={e.id}
+            style={{
+              background: 'white',
+              padding: '20px',
+              marginBottom: '15px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: e.pinned ? '2px solid gold' : 'none'
+            }}
+          >
+            {e.pinned && <p>📌 Pinned</p>}
 
-          {e.image && (
-            <img
-              src={e.image}
-              alt={e.title}   // ✅ FIXED
-              style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }}
-            />
-          )}
-        </div>
-      ))}
+            <h3>{e.title}</h3>
+            <p>{e.description}</p>
+            <small>{e.event_date} | {e.location}</small>
+
+            {e.image && (
+              <img
+                src={e.image}
+                alt={e.title}
+                style={{ width: '100%', marginTop: '10px', borderRadius: '10px' }}
+              />
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  fetch(`https://cabagan-backend.onrender.com/events/pin/${e.id}`, {
+                    method: 'PUT',
+                    headers: { 'x-admin-token': 'secret123' }
+                  }).then(res => {
+                    if (res.status === 400) {
+                      alert("Max 10 pinned events ❌");
+                      return;
+                    }
+                    fetchData();
+                  });
+                }}
+                style={{ marginTop: '10px' }}
+              >
+                {e.pinned ? "Unpin" : "Pin"}
+              </button>
+            )}
+          </div>
+        ))}
     </div>
   );
 }
