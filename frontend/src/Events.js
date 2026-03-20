@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 function Events() {
   const [events, setEvents] = useState([]);
+  const [search, setSearch] = useState('');
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -42,11 +43,17 @@ function Events() {
   const deleteEvent = (id) => {
     if (!window.confirm("Delete this event?")) return;
 
-    fetch(`https://cabagan-backend.onrender.com/events/${id}`,
-      {
+    fetch(`https://cabagan-backend.onrender.com/events/${id}`, {
       method: 'DELETE'
     }).then(() => fetchData());
   };
+
+  // 🔍 FILTER EVENTS
+  const filteredEvents = events.filter(e =>
+    e.title.toLowerCase().includes(search.toLowerCase()) ||
+    e.description.toLowerCase().includes(search.toLowerCase()) ||
+    e.location.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div style={{
@@ -54,7 +61,21 @@ function Events() {
       background: '#f5f7fa',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '20px' }}>Cabagan Events</h1>
+      <h1 style={{ marginBottom: '10px' }}>Cabagan Events</h1>
+
+      {/* 🔍 SEARCH BAR */}
+      <input
+        placeholder="Search events..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '10px',
+          marginBottom: '20px',
+          borderRadius: '8px',
+          border: '1px solid #ccc'
+        }}
+      />
 
       {/* FORM */}
       <div style={{
@@ -110,7 +131,7 @@ function Events() {
       </div>
 
       {/* LIST */}
-      {events.map(e => (
+      {filteredEvents.map(e => (
         <div key={e.id} style={{
           background: 'white',
           padding: '15px',
