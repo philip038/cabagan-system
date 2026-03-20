@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './Home';
 import Events from './Events';
+import Announcements from './Announcements';
+
 
 function App() {
   return (
@@ -26,6 +28,9 @@ function App() {
     <Link to="/events" style={{ color: 'white', textDecoration: 'none' }}>
       Events
     </Link>
+    <Link to="/announcements" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>
+      Announcements
+    </Link>
   </div>
 </nav>
 
@@ -33,6 +38,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/announcements" element={<Announcements />} />
         </Routes>
 
       </div>
