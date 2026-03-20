@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 
 function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
-
-  // 🔐 Admin check
   const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const token = isAdmin ? "secret123" : "";
 
-  // Fetch data
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+
   const fetchData = () => {
     fetch('https://cabagan-backend.onrender.com/announcements')
       .then(res => res.json())
@@ -18,118 +17,120 @@ function Announcements() {
     fetchData();
   }, []);
 
-  // Add announcement
   const addAnnouncement = () => {
-    const title = document.getElementById('title').value;
-    const content = document.getElementById('content').value;
-
-    if (!title || !content) {
-      alert("Please fill all fields");
-      return;
-    }
-
     fetch('https://cabagan-backend.onrender.com/announcements', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token
+        'x-admin-token': 'secret123'
       },
       body: JSON.stringify({ title, content })
-    })
-    .then(res => {
-      if (res.status === 403) {
-        alert("Unauthorized! Please login as admin.");
-        return;
-      }
-      return res.json();
-    })
-    .then(() => {
+    }).then(() => {
+      setTitle('');
+      setContent('');
       fetchData();
-
-      // Clear inputs
-      document.getElementById('title').value = "";
-      document.getElementById('content').value = "";
     });
   };
 
-  // Delete announcement
   const deleteAnnouncement = (id) => {
-    if (!window.confirm("Delete this announcement?")) return;
-
     fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': token
+        'x-admin-token': 'secret123'
       }
-    })
-    .then(res => {
-      if (res.status === 403) {
-        alert("Unauthorized! Please login as admin.");
-        return;
-      }
-      return res.json();
-    })
-    .then(() => {
-      fetchData();
-    });
+    }).then(() => fetchData());
   };
 
   return (
     <div style={{
-      padding: '20px',
-      background: '#f5f7fa',
+      padding: '30px',
+      background: '#f4f6f9',
       minHeight: '100vh'
     }}>
-      <h1>Cabagan Announcements</h1>
+      <h1 style={{ marginBottom: '20px' }}>📢 Cabagan Announcements</h1>
 
-      {/* 🔐 ADMIN ONLY: ADD */}
+      {/* ADMIN FORM */}
       {isAdmin && (
         <div style={{
           background: 'white',
-          padding: '15px',
-          marginBottom: '20px',
-          borderRadius: '10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '25px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <h3>Add Announcement</h3>
 
-          <input id="title" placeholder="Title" /><br /><br />
-          <textarea id="content" placeholder="Content" /><br /><br />
+          <input
+            placeholder="Title"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              marginBottom: '10px',
+              borderRadius: '6px',
+              border: '1px solid #ccc'
+            }}
+          />
 
-          <button onClick={addAnnouncement}>Add Announcement</button>
+          <textarea
+            placeholder="Content"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              marginBottom: '10px',
+              borderRadius: '6px',
+              border: '1px solid #ccc'
+            }}
+          />
+
+          <button
+            onClick={addAnnouncement}
+            style={{
+              background: '#2c7be5',
+              color: 'white',
+              padding: '10px 15px',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Add Announcement
+          </button>
         </div>
       )}
 
       {/* LIST */}
-      {announcements.length === 0 ? (
-        <p>No announcements available</p>
-      ) : (
-        announcements.map(a => (
-          <div key={a.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h3>{a.title}</h3>
-            <p>{a.content}</p>
+      {announcements.map(a => (
+        <div key={a.id} style={{
+          background: 'white',
+          padding: '20px',
+          marginBottom: '15px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+        }}>
+          <h3>{a.title}</h3>
+          <p>{a.content}</p>
 
-            {/* 🔐 ADMIN ONLY: DELETE */}
-            {isAdmin && (
-              <div>
-                <br />
-                <button
-                  style={{ background: 'red', color: 'white' }}
-                  onClick={() => deleteAnnouncement(a.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        ))
-      )}
+          {isAdmin && (
+            <button
+              onClick={() => deleteAnnouncement(a.id)}
+              style={{
+                background: 'red',
+                color: 'white',
+                border: 'none',
+                padding: '6px 10px',
+                borderRadius: '5px',
+                marginTop: '10px'
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
