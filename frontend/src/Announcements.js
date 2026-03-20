@@ -36,7 +36,16 @@ function Announcements() {
       });
   };
 
-  // 🔍 SEARCH FILTER
+  // ✅ DELETE FUNCTION
+  const deleteAnnouncement = (id) => {
+    if (!window.confirm("Delete this announcement?")) return;
+
+    fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
+      method: 'DELETE'
+    }).then(() => fetchData());
+  };
+
+  // 🔍 SEARCH
   const filteredAnnouncements = announcements.filter(a =>
     a.title.toLowerCase().includes(search.toLowerCase()) ||
     a.content.toLowerCase().includes(search.toLowerCase())
@@ -48,7 +57,7 @@ function Announcements() {
       background: '#f5f7fa',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '10px' }}>Cabagan Announcements</h1>
+      <h1>Cabagan Announcements</h1>
 
       {/* SEARCH */}
       <input
@@ -69,8 +78,8 @@ function Announcements() {
         background: 'white',
         padding: '20px',
         borderRadius: '12px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
       }}>
         <h3>Add Announcement</h3>
 
@@ -114,6 +123,22 @@ function Announcements() {
         }}>
           <h3>{a.title}</h3>
           <p>{a.content}</p>
+
+          {/* ✅ DELETE BUTTON */}
+          <button
+            onClick={() => deleteAnnouncement(a.id)}
+            style={{
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '6px 10px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}
+          >
+            Delete
+          </button>
         </div>
       ))}
     </div>
