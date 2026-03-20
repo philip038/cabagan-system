@@ -4,56 +4,50 @@ const fs = require('fs');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // ✅ allow image size
 
 const DATA_FILE = './data.json';
-
-// ✅ ADMIN TOKEN
 const ADMIN_TOKEN = "secret123";
 
-// ✅ MIDDLEWARE (IMPORTANT)
+// 🔐 ADMIN CHECK
 const checkAdmin = (req, res, next) => {
   const token = req.headers['x-admin-token'];
-
   if (token !== ADMIN_TOKEN) {
     return res.status(403).json({ message: "Forbidden ❌" });
   }
-
   next();
 };
 
-// Read data
+// READ
 const readData = () => {
   if (!fs.existsSync(DATA_FILE)) {
     return { announcements: [], events: [] };
   }
-  const data = fs.readFileSync(DATA_FILE);
-  return JSON.parse(data);
+  return JSON.parse(fs.readFileSync(DATA_FILE));
 };
 
-// Write data
+// WRITE
 const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
 
 //
-// ================= ANNOUNCEMENTS =================
+// 📢 ANNOUNCEMENTS
 //
 
-// GET
 app.get('/announcements', (req, res) => {
   const data = readData();
-  res.json(data.announcements || []);
+  res.json(data.announcements);
 });
 
-// POST (ADMIN ONLY)
 app.post('/announcements', checkAdmin, (req, res) => {
   const data = readData();
 
   const newItem = {
     id: Date.now(),
     title: req.body.title,
-    content: req.body.content
+    content: req.body.content,
+    image: req.body.image || "" // ✅ NEW
   };
 
   data.announcements.push(newItem);
@@ -62,30 +56,22 @@ app.post('/announcements', checkAdmin, (req, res) => {
   res.json(newItem);
 });
 
-// DELETE (ADMIN ONLY)
 app.delete('/announcements/:id', checkAdmin, (req, res) => {
   const data = readData();
-
-  data.announcements = data.announcements.filter(
-    a => a.id != req.params.id
-  );
-
+  data.announcements = data.announcements.filter(a => a.id != req.params.id);
   writeData(data);
-
   res.json({ message: "Deleted" });
 });
 
 //
-// ================= EVENTS =================
+// 🎉 EVENTS
 //
 
-// GET
 app.get('/events', (req, res) => {
   const data = readData();
-  res.json(data.events || []);
+  res.json(data.events);
 });
 
-// POST (ADMIN ONLY)
 app.post('/events', checkAdmin, (req, res) => {
   const data = readData();
 
@@ -94,7 +80,8 @@ app.post('/events', checkAdmin, (req, res) => {
     title: req.body.title,
     description: req.body.description,
     event_date: req.body.event_date,
-    location: req.body.location
+    location: req.body.location,
+    image: req.body.image || "" // ✅ NEW
   };
 
   data.events.push(newEvent);
@@ -103,22 +90,13 @@ app.post('/events', checkAdmin, (req, res) => {
   res.json(newEvent);
 });
 
-// DELETE (ADMIN ONLY)
 app.delete('/events/:id', checkAdmin, (req, res) => {
   const data = readData();
-
-  data.events = data.events.filter(
-    e => e.id != req.params.id
-  );
-
+  data.events = data.events.filter(e => e.id != req.params.id);
   writeData(data);
-
   res.json({ message: "Deleted" });
 });
 
-// PORT
+// SERVER
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log("Server running"));
