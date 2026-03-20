@@ -5,12 +5,12 @@ function Login() {
   const [password, setPassword] = useState('');
 
   const login = () => {
-    if (username === 'admin' && password === '1234') {
-      localStorage.setItem('isAdmin', 'true');
-      alert('Login successful');
-      window.location.href = '/';
+    if (username === "admin" && password === "1234") {
+      localStorage.setItem("isAdmin", "true");
+      alert("Login successful");
+      window.location.href = "/";
     } else {
-      alert('Invalid credentials');
+      alert("Invalid credentials");
     }
   };
 

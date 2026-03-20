@@ -4,7 +4,7 @@ function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
 
   // 🔐 Admin check
-  const isAdmin = localStorage.getItem("isAdmin");
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
   const token = isAdmin ? "secret123" : "";
 
   // Fetch data
