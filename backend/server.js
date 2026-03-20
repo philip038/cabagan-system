@@ -8,10 +8,13 @@ app.use(express.json());
 
 const DATA_FILE = './data.json';
 
-// Read data
+// 🔐 SIMPLE ADMIN TOKEN
+const ADMIN_TOKEN = "secret123";
+
+// Read data safely
 const readData = () => {
   if (!fs.existsSync(DATA_FILE)) {
-    return { events: [], announcements: [] };
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ announcements: [], events: [] }));
   }
   const data = fs.readFileSync(DATA_FILE);
   return JSON.parse(data);
@@ -22,7 +25,7 @@ const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
 
-// ================= ANNOUNCEMENTS =================
+// ===================== ANNOUNCEMENTS =====================
 
 // GET
 app.get('/announcements', (req, res) => {
@@ -30,8 +33,12 @@ app.get('/announcements', (req, res) => {
   res.json(data.announcements || []);
 });
 
-// POST
+// POST (🔐 PROTECTED)
 app.post('/announcements', (req, res) => {
+  if (req.headers.authorization !== ADMIN_TOKEN) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
   const data = readData();
 
   const newItem = {
@@ -46,20 +53,23 @@ app.post('/announcements', (req, res) => {
   res.json(newItem);
 });
 
-// ✅ DELETE ANNOUNCEMENT (NEW)
+// DELETE (🔐 PROTECTED)
 app.delete('/announcements/:id', (req, res) => {
+  if (req.headers.authorization !== ADMIN_TOKEN) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
   const data = readData();
 
-  data.announcements = data.announcements.filter(
-    a => a.id != req.params.id
-  );
+  data.announcements = data.announcements.filter(a => a.id != req.params.id);
 
   writeData(data);
 
   res.json({ message: "Deleted" });
 });
 
-// ================= EVENTS =================
+
+// ===================== EVENTS =====================
 
 // GET
 app.get('/events', (req, res) => {
@@ -67,8 +77,12 @@ app.get('/events', (req, res) => {
   res.json(data.events || []);
 });
 
-// POST
+// POST (🔐 PROTECTED)
 app.post('/events', (req, res) => {
+  if (req.headers.authorization !== ADMIN_TOKEN) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
   const data = readData();
 
   const newEvent = {
@@ -85,8 +99,12 @@ app.post('/events', (req, res) => {
   res.json(newEvent);
 });
 
-// DELETE
+// DELETE (🔐 PROTECTED)
 app.delete('/events/:id', (req, res) => {
+  if (req.headers.authorization !== ADMIN_TOKEN) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
   const data = readData();
 
   data.events = data.events.filter(e => e.id != req.params.id);
@@ -96,7 +114,8 @@ app.delete('/events/:id', (req, res) => {
   res.json({ message: "Deleted" });
 });
 
-// PORT
+
+// ===================== SERVER =====================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
