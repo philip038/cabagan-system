@@ -28,7 +28,7 @@ function App() {
     <Link to="/events" style={{ color: 'white', textDecoration: 'none' }}>
       Events
     </Link>
-    <Link to="/announcements" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>
+    <Link to="/Announcements" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>
       Announcements
     </Link>
   </div>
@@ -38,7 +38,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/announcements" element={<Announcements />} />
+          <Route path="/Announcements" element={<Announcements />} />
         </Routes>
 
       </div>
