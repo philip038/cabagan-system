@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 
 function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
-  const [search, setSearch] = useState('');
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // 🔐 Admin check
+  const isAdmin = localStorage.getItem("isAdmin");
+  const token = isAdmin ? "secret123" : "";
 
+  // Fetch data
   const fetchData = () => {
     fetch('https://cabagan-backend.onrender.com/announcements')
       .then(res => res.json())
@@ -17,7 +18,11 @@ function Announcements() {
     fetchData();
   }, []);
 
+  // Add announcement
   const addAnnouncement = () => {
+    const title = document.getElementById('title').value;
+    const content = document.getElementById('content').value;
+
     if (!title || !content) {
       alert("Please fill all fields");
       return;
@@ -25,31 +30,49 @@ function Announcements() {
 
     fetch('https://cabagan-backend.onrender.com/announcements', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
       body: JSON.stringify({ title, content })
     })
-      .then(res => res.json())
-      .then(() => {
-        setTitle('');
-        setContent('');
-        fetchData();
-      });
+    .then(res => {
+      if (res.status === 403) {
+        alert("Unauthorized! Please login as admin.");
+        return;
+      }
+      return res.json();
+    })
+    .then(() => {
+      fetchData();
+
+      // Clear inputs
+      document.getElementById('title').value = "";
+      document.getElementById('content').value = "";
+    });
   };
 
-  // ✅ DELETE FUNCTION
+  // Delete announcement
   const deleteAnnouncement = (id) => {
     if (!window.confirm("Delete this announcement?")) return;
 
     fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
-      method: 'DELETE'
-    }).then(() => fetchData());
+      method: 'DELETE',
+      headers: {
+        'Authorization': token
+      }
+    })
+    .then(res => {
+      if (res.status === 403) {
+        alert("Unauthorized! Please login as admin.");
+        return;
+      }
+      return res.json();
+    })
+    .then(() => {
+      fetchData();
+    });
   };
-
-  // 🔍 SEARCH
-  const filteredAnnouncements = announcements.filter(a =>
-    a.title.toLowerCase().includes(search.toLowerCase()) ||
-    a.content.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div style={{
@@ -59,88 +82,54 @@ function Announcements() {
     }}>
       <h1>Cabagan Announcements</h1>
 
-      {/* SEARCH */}
-      <input
-        placeholder="Search announcements..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '10px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          border: '1px solid #ccc'
-        }}
-      />
-
-      {/* FORM */}
-      <div style={{
-        background: 'white',
-        padding: '20px',
-        borderRadius: '12px',
-        marginBottom: '20px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <h3>Add Announcement</h3>
-
-        <input
-          placeholder="Title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
-        />
-
-        <textarea
-          placeholder="Content"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
-        />
-
-        <button
-          onClick={addAnnouncement}
-          style={{
-            background: '#2c7be5',
-            color: 'white',
-            border: 'none',
-            padding: '10px 15px',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          Add Announcement
-        </button>
-      </div>
-
-      {/* LIST */}
-      {filteredAnnouncements.map(a => (
-        <div key={a.id} style={{
+      {/* 🔐 ADMIN ONLY: ADD */}
+      {isAdmin && (
+        <div style={{
           background: 'white',
           padding: '15px',
-          marginBottom: '15px',
+          marginBottom: '20px',
           borderRadius: '10px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <h3>{a.title}</h3>
-          <p>{a.content}</p>
+          <h3>Add Announcement</h3>
 
-          {/* ✅ DELETE BUTTON */}
-          <button
-            onClick={() => deleteAnnouncement(a.id)}
-            style={{
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '6px 10px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              marginTop: '10px'
-            }}
-          >
-            Delete
-          </button>
+          <input id="title" placeholder="Title" /><br /><br />
+          <textarea id="content" placeholder="Content" /><br /><br />
+
+          <button onClick={addAnnouncement}>Add Announcement</button>
         </div>
-      ))}
+      )}
+
+      {/* LIST */}
+      {announcements.length === 0 ? (
+        <p>No announcements available</p>
+      ) : (
+        announcements.map(a => (
+          <div key={a.id} style={{
+            background: 'white',
+            padding: '15px',
+            marginBottom: '15px',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <h3>{a.title}</h3>
+            <p>{a.content}</p>
+
+            {/* 🔐 ADMIN ONLY: DELETE */}
+            {isAdmin && (
+              <div>
+                <br />
+                <button
+                  style={{ background: 'red', color: 'white' }}
+                  onClick={() => deleteAnnouncement(a.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 }
