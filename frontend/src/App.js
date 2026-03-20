@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './Home';
 import Events from './Events';
 import Announcements from './Announcements';
+import Login from './Login';
 
 
 function App() {
@@ -31,6 +32,9 @@ function App() {
     <Link to="/Announcements" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>
       Announcements
     </Link>
+    <Link to="/login" style={{ color: 'white', marginLeft: '20px'}}>
+      Admin
+    </Link>
   </div>
 </nav>
 
@@ -39,6 +43,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
           <Route path="/Announcements" element={<Announcements />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
 
       </div>
