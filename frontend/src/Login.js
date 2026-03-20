@@ -8,7 +8,7 @@ function Login() {
     if (username === "admin" && password === "1234") {
       localStorage.setItem("isAdmin", "true");
       alert("Login successful ✅");
-      window.location.href = "/";
+      window.location.href = "/events";
     } else {
       alert("Invalid credentials ❌");
     }

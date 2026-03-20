@@ -6,7 +6,7 @@ import Login from './Login';
 
 function App() {
 
-  // ✅ FIXED ADMIN CHECK
+  // ✅ ADMIN CHECK
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   const logout = () => {
@@ -30,27 +30,20 @@ function App() {
             Cabagan LGU System
           </h2>
 
-          <div>
-            <Link to="/" style={{ color: 'white', marginRight: '20px' }}>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>
               Home
             </Link>
 
-            <Link to="/events" style={{ color: 'white', marginRight: '20px' }}>
+            <Link to="/events" style={{ color: 'white', textDecoration: 'none' }}>
               Events
             </Link>
 
-            <Link to="/announcements" style={{ color: 'white', marginRight: '20px' }}>
+            <Link to="/announcements" style={{ color: 'white', textDecoration: 'none' }}>
               Announcements
             </Link>
 
-            {/* SHOW ADMIN LINK IF NOT LOGGED IN */}
-            {!isAdmin && (
-              <Link to="/login" style={{ color: 'white', marginRight: '20px' }}>
-                Admin
-              </Link>
-            )}
-
-            {/* SHOW LOGOUT IF ADMIN */}
+            {/* ✅ ONLY SHOW LOGOUT IF ADMIN */}
             {isAdmin && (
               <button
                 onClick={logout}
@@ -73,7 +66,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
           <Route path="/announcements" element={<Announcements />} />
-          <Route path="/login" element={<Login />} />
+
+          {/* ✅ HIDDEN ADMIN ROUTE */}
+          <Route path="/admin" element={<Login />} />
         </Routes>
 
       </div>
