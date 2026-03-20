@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 function Events() {
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ FIXED ADMIN CHECK (VERY IMPORTANT)
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   const [title, setTitle] = useState('');
@@ -11,21 +11,24 @@ function Events() {
   const [date, setDate] = useState('');
   const [location, setLocation] = useState('');
 
-  // Fetch events
   const fetchData = () => {
+    setLoading(true);
     fetch('https://cabagan-backend.onrender.com/events')
       .then(res => res.json())
-      .then(data => setEvents(data));
+      .then(data => {
+        setEvents(data);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Add event (ADMIN ONLY)
   const addEvent = () => {
-    if (!isAdmin) {
-      alert("Unauthorized ❌");
+    // 🔴 VALIDATION
+    if (!title || !description || !date || !location) {
+      alert("Please fill all fields ❌");
       return;
     }
 
@@ -50,6 +53,8 @@ function Events() {
         return res.json();
       })
       .then(() => {
+        alert("Event added successfully ✅");
+
         setTitle('');
         setDescription('');
         setDate('');
@@ -58,13 +63,7 @@ function Events() {
       });
   };
 
-  // Delete event (ADMIN ONLY)
   const deleteEvent = (id) => {
-    if (!isAdmin) {
-      alert("Unauthorized ❌");
-      return;
-    }
-
     if (!window.confirm("Delete this event?")) return;
 
     fetch(`https://cabagan-backend.onrender.com/events/${id}`, {
@@ -72,32 +71,28 @@ function Events() {
       headers: {
         'x-admin-token': 'secret123'
       }
-    })
-      .then(res => {
-        if (res.status === 403) {
-          alert("Unauthorized ❌");
-          return;
-        }
-        fetchData();
-      });
+    }).then(() => {
+      alert("Event deleted 🗑️");
+      fetchData();
+    });
   };
 
   return (
     <div style={{
-      padding: '20px',
-      background: '#f5f7fa',
+      padding: '30px',
+      background: '#f4f6f9',
       minHeight: '100vh'
     }}>
-      <h1>Cabagan Events</h1>
+      <h1 style={{ marginBottom: '20px' }}>🎉 Cabagan Events</h1>
 
-      {/* ✅ ADMIN ONLY FORM */}
+      {/* ADMIN FORM */}
       {isAdmin && (
         <div style={{
           background: 'white',
           padding: '20px',
-          borderRadius: '10px',
-          marginBottom: '20px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          marginBottom: '25px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <h3>Add Event</h3>
 
@@ -105,38 +100,39 @@ function Events() {
             placeholder="Title"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
 
           <input
             placeholder="Description"
             value={description}
             onChange={e => setDescription(e.target.value)}
-            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
 
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            style={{ display: 'block', marginBottom: '10px', padding: '8px' }}
+            style={{ padding: '10px', marginBottom: '10px' }}
           />
 
           <input
             placeholder="Location"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            style={{ display: 'block', marginBottom: '10px', width: '100%', padding: '8px' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
 
           <button
             onClick={addEvent}
             style={{
-              background: 'green',
+              background: '#2c7be5',
               color: 'white',
               padding: '10px 15px',
               border: 'none',
-              borderRadius: '5px'
+              borderRadius: '6px',
+              cursor: 'pointer'
             }}
           >
             Add Event
@@ -144,43 +140,44 @@ function Events() {
         </div>
       )}
 
-      {/* EVENTS LIST */}
-      {events.length === 0 ? (
-        <p>No events available</p>
-      ) : (
-        events.map(e => (
-          <div key={e.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h3>{e.title}</h3>
-            <p>{e.description}</p>
-            <small>{e.event_date} | {e.location}</small>
+      {/* LOADING */}
+      {loading && <p>Loading events...</p>}
 
-            {/* ✅ ADMIN ONLY DELETE */}
-            {isAdmin && (
-              <div>
-                <button
-                  onClick={() => deleteEvent(e.id)}
-                  style={{
-                    marginTop: '10px',
-                    background: 'red',
-                    color: 'white',
-                    padding: '5px 10px',
-                    border: 'none',
-                    borderRadius: '5px'
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        ))
+      {/* EMPTY STATE */}
+      {!loading && events.length === 0 && (
+        <p>📭 No events available</p>
       )}
+
+      {/* LIST */}
+      {events.map(e => (
+        <div key={e.id} style={{
+          background: 'white',
+          padding: '20px',
+          marginBottom: '15px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+        }}>
+          <h3>{e.title}</h3>
+          <p>{e.description}</p>
+          <small>{e.event_date} | {e.location}</small>
+
+          {isAdmin && (
+            <button
+              onClick={() => deleteEvent(e.id)}
+              style={{
+                background: 'red',
+                color: 'white',
+                border: 'none',
+                padding: '6px 10px',
+                borderRadius: '5px',
+                marginTop: '10px'
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

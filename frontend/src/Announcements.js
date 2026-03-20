@@ -2,22 +2,35 @@ import { useEffect, useState } from 'react';
 
 function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
   const fetchData = () => {
+    setLoading(true);
     fetch('https://cabagan-backend.onrender.com/announcements')
       .then(res => res.json())
-      .then(data => setAnnouncements(data));
+      .then(data => {
+        setAnnouncements(data);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  // 🔥 ADD ANNOUNCEMENT
   const addAnnouncement = () => {
+    // ✅ VALIDATION
+    if (!title || !content) {
+      alert("Please fill all fields ❌");
+      return;
+    }
+
     fetch('https://cabagan-backend.onrender.com/announcements', {
       method: 'POST',
       headers: {
@@ -25,20 +38,41 @@ function Announcements() {
         'x-admin-token': 'secret123'
       },
       body: JSON.stringify({ title, content })
-    }).then(() => {
-      setTitle('');
-      setContent('');
-      fetchData();
-    });
+    })
+      .then(res => {
+        if (res.status === 403) {
+          alert("Unauthorized ❌");
+          return;
+        }
+        return res.json();
+      })
+      .then(() => {
+        alert("Announcement added successfully ✅");
+
+        setTitle('');
+        setContent('');
+        fetchData();
+      });
   };
 
+  // 🔥 DELETE ANNOUNCEMENT
   const deleteAnnouncement = (id) => {
+    if (!window.confirm("Delete this announcement?")) return;
+
     fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
       method: 'DELETE',
       headers: {
         'x-admin-token': 'secret123'
       }
-    }).then(() => fetchData());
+    })
+      .then(res => {
+        if (res.status === 403) {
+          alert("Unauthorized ❌");
+          return;
+        }
+        alert("Deleted successfully 🗑️");
+        fetchData();
+      });
   };
 
   return (
@@ -100,6 +134,14 @@ function Announcements() {
             Add Announcement
           </button>
         </div>
+      )}
+
+      {/* LOADING */}
+      {loading && <p>Loading announcements...</p>}
+
+      {/* EMPTY STATE */}
+      {!loading && announcements.length === 0 && (
+        <p>📭 No announcements available</p>
       )}
 
       {/* LIST */}
