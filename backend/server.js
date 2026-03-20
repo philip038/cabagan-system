@@ -1,87 +1,74 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Create database
-const db = new sqlite3.Database('./database.db');
+// Database
+const db = new Database('database.db');
 
 // Create tables
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS announcements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      content TEXT
-    )
-  `);
-});
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    content TEXT
+  )
+`).run();
 
-// TEST ROUTE
-app.get('/', (req, res) => {
-  res.send("Backend is working!");
-});
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    description TEXT,
+    event_date TEXT,
+    location TEXT
+  )
+`).run();
 
-// GET announcements
+// Routes
+
+// Announcements
 app.get('/announcements', (req, res) => {
-  db.all("SELECT * FROM announcements", (err, rows) => {
-    res.json(rows);
-  });
+  const rows = db.prepare("SELECT * FROM announcements").all();
+  res.json(rows);
 });
 
-// ADD announcement
 app.post('/announcements', (req, res) => {
   const { title, content } = req.body;
-
-  db.run(
-    "INSERT INTO announcements (title, content) VALUES (?, ?)",
-    [title, content],
-    () => res.send("Added!")
-  );
+  db.prepare(
+    "INSERT INTO announcements (title, content) VALUES (?, ?)"
+  ).run(title, content);
+  res.send("Added");
 });
 
-app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
-});
-// CREATE events table
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      description TEXT,
-      event_date TEXT,
-      location TEXT
-    )
-  `);
-});
-
-// GET events
+// Events
 app.get('/events', (req, res) => {
-  db.all("SELECT * FROM events", (err, rows) => {
-    res.json(rows);
-  });
+  const rows = db.prepare("SELECT * FROM events").all();
+  res.json(rows);
 });
 
-// ADD event
 app.post('/events', (req, res) => {
   const { title, description, event_date, location } = req.body;
 
-  db.run(
-    "INSERT INTO events (title, description, event_date, location) VALUES (?, ?, ?, ?)",
-    [title, description, event_date, location],
-    () => res.send("Event added!")
-  );
+  db.prepare(
+    "INSERT INTO events (title, description, event_date, location) VALUES (?, ?, ?, ?)"
+  ).run(title, description, event_date, location);
+
+  res.send("Event added");
 });
 
-// DELETE event
+// Delete event
 app.delete('/events/:id', (req, res) => {
-  const id = req.params.id;
+  db.prepare("DELETE FROM events WHERE id = ?").run(req.params.id);
+  res.send("Deleted");
+});
 
-  db.run("DELETE FROM events WHERE id = ?", [id], () => {
-    res.send("Event deleted");
-  });
+// PORT FIX (IMPORTANT)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
