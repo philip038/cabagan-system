@@ -42,21 +42,27 @@ function Events() {
   const deleteEvent = (id) => {
     if (!window.confirm("Delete this event?")) return;
 
-    fetch(`https://cabagan-backend.onrender.com/events/${id}`, {
+    fetch(`https://cabagan-backend.onrender.com/events/${id}`,
+      {
       method: 'DELETE'
     }).then(() => fetchData());
   };
 
   return (
-    <div style={{ padding: '20px', background: '#f5f7fa', minHeight: '100vh' }}>
-      <h1>Cabagan Events</h1>
+    <div style={{
+      padding: '20px',
+      background: '#f5f7fa',
+      minHeight: '100vh'
+    }}>
+      <h1 style={{ marginBottom: '20px' }}>Cabagan Events</h1>
 
       {/* FORM */}
       <div style={{
         background: 'white',
-        padding: '15px',
-        marginBottom: '20px',
-        borderRadius: '10px'
+        padding: '20px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        marginBottom: '20px'
       }}>
         <h3>Add Event</h3>
 
@@ -64,42 +70,72 @@ function Events() {
           placeholder="Title"
           value={title}
           onChange={e => setTitle(e.target.value)}
-        /><br /><br />
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+        />
 
         <textarea
           placeholder="Description"
           value={description}
           onChange={e => setDescription(e.target.value)}
-        /><br /><br />
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+        />
 
         <input
           type="date"
           value={date}
           onChange={e => setDate(e.target.value)}
-        /><br /><br />
+          style={{ padding: '10px', marginBottom: '10px' }}
+        />
 
         <input
           placeholder="Location"
           value={location}
           onChange={e => setLocation(e.target.value)}
-        /><br /><br />
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+        />
 
-        <button onClick={addEvent}>Add Event</button>
+        <button
+          onClick={addEvent}
+          style={{
+            background: '#28a745',
+            color: 'white',
+            border: 'none',
+            padding: '10px 15px',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Add Event
+        </button>
       </div>
 
       {/* LIST */}
       {events.map(e => (
         <div key={e.id} style={{
-          border: '1px solid #ccc',
-          padding: '10px',
-          marginBottom: '10px',
-          borderRadius: '8px'
+          background: 'white',
+          padding: '15px',
+          marginBottom: '15px',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           <h3>{e.title}</h3>
           <p>{e.description}</p>
-          <small>{e.event_date} | {e.location}</small><br />
+          <small>{e.event_date} | {e.location}</small>
+          <br /><br />
 
-          <button onClick={() => deleteEvent(e.id)}>Delete</button>
+          <button
+            onClick={() => deleteEvent(e.id)}
+            style={{
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '6px 10px',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Delete
+          </button>
         </div>
       ))}
     </div>
