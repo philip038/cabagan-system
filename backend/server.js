@@ -3,23 +3,52 @@ const cors = require('cors');
 const fs = require('fs');
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
 
 const DATA_FILE = './data.json';
 
-// Read data
+// Ensure file exists
+if (!fs.existsSync(DATA_FILE)) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify({
+    announcements: [],
+    events: []
+  }));
+}
+
+// Read data safely
 const readData = () => {
-  const data = fs.readFileSync(DATA_FILE);
-  return JSON.parse(data);
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    return JSON.parse(data);
+  } catch (error) {
+    return { announcements: [], events: [] };
+  }
 };
 
-// Write data
+// Write data safely
 const writeData = (data) => {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Write error:", error);
+  }
 };
 
-// Announcements
+// ROOT ROUTE (so no more "Cannot GET /")
+app.get('/', (req, res) => {
+  res.send("Cabagan Backend API is running");
+});
+
+// =======================
+// ANNOUNCEMENTS
+// =======================
 app.get('/announcements', (req, res) => {
   const data = readData();
   res.json(data.announcements);
@@ -27,6 +56,7 @@ app.get('/announcements', (req, res) => {
 
 app.post('/announcements', (req, res) => {
   const data = readData();
+
   const newItem = {
     id: Date.now(),
     title: req.body.title,
@@ -36,10 +66,12 @@ app.post('/announcements', (req, res) => {
   data.announcements.push(newItem);
   writeData(data);
 
-  res.send("Added");
+  res.json({ message: "Announcement added", data: newItem });
 });
 
-// Events
+// =======================
+// EVENTS
+// =======================
 app.get('/events', (req, res) => {
   const data = readData();
   res.json(data.events);
@@ -47,6 +79,10 @@ app.get('/events', (req, res) => {
 
 app.post('/events', (req, res) => {
   const data = readData();
+
+  if (!req.body.title) {
+    return res.status(400).json({ error: "Title is required" });
+  }
 
   const newEvent = {
     id: Date.now(),
@@ -59,10 +95,10 @@ app.post('/events', (req, res) => {
   data.events.push(newEvent);
   writeData(data);
 
-  res.send("Event added");
+  res.json({ message: "Event added", data: newEvent });
 });
 
-// Delete event
+// DELETE EVENT
 app.delete('/events/:id', (req, res) => {
   const data = readData();
 
@@ -70,12 +106,14 @@ app.delete('/events/:id', (req, res) => {
 
   writeData(data);
 
-  res.send("Deleted");
+  res.json({ message: "Event deleted" });
 });
 
-// PORT
+// =======================
+// START SERVER
+// =======================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server, running, on port", PORT);
 });
