@@ -17,7 +17,11 @@ function Announcements() {
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState([]);
 
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const isAdmin = !!localStorage.getItem('token');
+
+  const authHeader = {
+    Authorization: localStorage.getItem('token')
+  };
 
   useEffect(() => { fetchData(); }, []);
 
@@ -39,14 +43,11 @@ function Announcements() {
   };
 
   const add = async () => {
-    if (!isAdmin) return alert("Unauthorized ❌");
-    if (!title || !content) return alert("Fill all fields");
-
     await fetch(`${API}/announcements`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-token': 'secret123'
+        ...authHeader
       },
       body: JSON.stringify({
         title,
@@ -65,23 +66,20 @@ function Announcements() {
   const del = async (id) => {
     await fetch(`${API}/announcements/${id}`, {
       method: 'DELETE',
-      headers: { 'x-admin-token': 'secret123' }
+      headers: authHeader
     });
     fetchData();
   };
 
   const pin = async (item) => {
     const count = data.filter(x => x.pinned).length;
-
-    if (!item.pinned && count >= 10) {
-      return alert("Max 10 pinned announcements");
-    }
+    if (!item.pinned && count >= 10) return alert("Max 10 pinned");
 
     await fetch(`${API}/announcements/${item.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-token': 'secret123'
+        ...authHeader
       },
       body: JSON.stringify({ ...item, pinned: !item.pinned })
     });
@@ -98,18 +96,9 @@ function Announcements() {
           <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
           <textarea style={input} placeholder="Content" value={content} onChange={e => setContent(e.target.value)} />
 
-          <h4>Target Barangays</h4>
-
-          <label style={bold}>
-            <input
-              type="checkbox"
-              checked={all}
-              onChange={() => {
-                setAll(!all);
-                setSelected([]);
-              }}
-            />
-            🌐 All Barangays
+          <label>
+            <input type="checkbox" checked={all} onChange={() => { setAll(!all); setSelected([]); }} />
+            All Barangays
           </label>
 
           {!all && (
@@ -121,33 +110,26 @@ function Announcements() {
                     checked={selected.includes(b)}
                     onChange={() => toggleSelect(b)}
                   />
-                  {' '}{b}
+                  {b}
                 </label>
               ))}
             </div>
           )}
 
-          <button style={primaryBtn} onClick={add}>➕ Add</button>
+          <button style={btn} onClick={add}>Add</button>
         </div>
       )}
 
       {data.map(item => (
-        <div key={item.id} style={{
-          ...card,
-          borderLeft: item.pinned ? "6px solid gold" : "none"
-        }}>
+        <div key={item.id} style={{ ...card, borderLeft: item.pinned ? "5px solid gold" : "none" }}>
           <h3>{item.pinned && "📌"} {item.title}</h3>
           <p>{item.content}</p>
-          <small>📍 {(item.barangays || ["All"]).join(', ')}</small>
+          <small>{(item.barangays || ["All"]).join(', ')}</small>
 
           {isAdmin && (
-            <div style={actions}>
-              <button style={pinBtn} onClick={() => pin(item)}>
-                {item.pinned ? "Unpin" : "Pin"}
-              </button>
-              <button style={deleteBtn} onClick={() => del(item.id)}>
-                🗑
-              </button>
+            <div>
+              <button onClick={() => pin(item)}>📌</button>
+              <button onClick={() => del(item.id)}>🗑</button>
             </div>
           )}
         </div>
@@ -156,15 +138,10 @@ function Announcements() {
   );
 }
 
-/* STYLES */
-const page = { padding: 20, background: '#f4f6f9', minHeight: '100vh' };
-const card = { background: '#fff', padding: 20, borderRadius: 12, marginBottom: 15 };
-const input = { width: '100%', marginBottom: 10, padding: 10 };
-const primaryBtn = { padding: 10, background: '#2c7be5', color: '#fff', border: 'none', borderRadius: 8 };
-const deleteBtn = { background: '#e74c3c', color: '#fff', padding: 10, borderRadius: 8 };
-const pinBtn = { background: '#f1c40f', padding: 10, borderRadius: 8 };
-const checkboxBox = { maxHeight: 150, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(2,1fr)' };
-const bold = { fontWeight: 'bold', display: 'block', marginBottom: 10 };
-const actions = { display: 'flex', gap: 10, marginTop: 10 };
+const page = { padding: 20 };
+const card = { background: "#fff", padding: 15, margin: 10 };
+const input = { width: "100%", marginBottom: 10 };
+const btn = { padding: 10 };
+const checkboxBox = { maxHeight: 150, overflowY: 'auto' };
 
 export default Announcements;
