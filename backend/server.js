@@ -9,7 +9,7 @@ app.use(express.json({ limit: '10mb' }));
 const DATA_FILE = './data.json';
 const ADMIN_TOKEN = "secret123";
 
-// 🔐 ADMIN CHECK
+// ================= ADMIN CHECK =================
 const checkAdmin = (req, res, next) => {
   const token = req.headers['x-admin-token'];
   if (token !== ADMIN_TOKEN) {
@@ -18,7 +18,7 @@ const checkAdmin = (req, res, next) => {
   next();
 };
 
-// READ
+// ================= READ =================
 const readData = () => {
   if (!fs.existsSync(DATA_FILE)) {
     return { announcements: [], events: [] };
@@ -26,7 +26,7 @@ const readData = () => {
   return JSON.parse(fs.readFileSync(DATA_FILE));
 };
 
-// WRITE
+// ================= WRITE =================
 const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
@@ -42,13 +42,18 @@ app.get('/announcements', (req, res) => {
 app.post('/announcements', checkAdmin, (req, res) => {
   const data = readData();
 
+  const { title, content, barangays } = req.body;
+
   const newItem = {
     id: Date.now(),
-    title: req.body.title,
-    content: req.body.content,
-    image: req.body.image || "",
+    title,
+    content,
     pinned: false,
-    barangay: req.body.barangay || ["All"]
+
+    // ✅ FIXED HERE
+    barangays: Array.isArray(barangays) && barangays.length > 0
+      ? barangays
+      : ["All"]
   };
 
   data.announcements.push(newItem);
@@ -64,24 +69,6 @@ app.delete('/announcements/:id', checkAdmin, (req, res) => {
   res.json({ message: "Deleted" });
 });
 
-app.put('/announcements/pin/:id', checkAdmin, (req, res) => {
-  const data = readData();
-
-  const pinnedCount = data.announcements.filter(a => a.pinned).length;
-  const target = data.announcements.find(a => a.id == req.params.id);
-
-  if (!target) return res.status(404).json({ message: "Not found" });
-
-  if (!target.pinned && pinnedCount >= 10) {
-    return res.status(400).json({ message: "Max 10 pinned ❌" });
-  }
-
-  target.pinned = !target.pinned;
-  writeData(data);
-
-  res.json({ message: "Updated" });
-});
-
 //
 // 🎉 EVENTS
 //
@@ -93,15 +80,19 @@ app.get('/events', (req, res) => {
 app.post('/events', checkAdmin, (req, res) => {
   const data = readData();
 
+  const { title, description, event_date, barangays } = req.body;
+
   const newEvent = {
     id: Date.now(),
-    title: req.body.title,
-    description: req.body.description,
-    event_date: req.body.event_date,
-    location: req.body.location,
-    image: req.body.image || "",
+    title,
+    description,
+    event_date,
     pinned: false,
-    barangay: req.body.barangay || ["All"]
+
+    // ✅ FIXED HERE
+    barangays: Array.isArray(barangays) && barangays.length > 0
+      ? barangays
+      : ["All"]
   };
 
   data.events.push(newEvent);
@@ -117,24 +108,6 @@ app.delete('/events/:id', checkAdmin, (req, res) => {
   res.json({ message: "Deleted" });
 });
 
-app.put('/events/pin/:id', checkAdmin, (req, res) => {
-  const data = readData();
-
-  const pinnedCount = data.events.filter(e => e.pinned).length;
-  const target = data.events.find(e => e.id == req.params.id);
-
-  if (!target) return res.status(404).json({ message: "Not found" });
-
-  if (!target.pinned && pinnedCount >= 10) {
-    return res.status(400).json({ message: "Max 10 pinned ❌" });
-  }
-
-  target.pinned = !target.pinned;
-  writeData(data);
-
-  res.json({ message: "Updated" });
-});
-
-// SERVER
+// ================= SERVER =================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running"));
