@@ -1,100 +1,113 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const API = "https://cabagan-backend.onrender.com";
 
 const barangays = [
-  "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
-  "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
-  "Luquilu","Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
-  "Ngarag","Pilig Abajo","Pilig Alto","San Antonio (Candanum)",
-  "San Bernardo","San Juan","Saui","Tallag","Ugad","Union"
+  "Aggub","Anao","Angancasilian","Balasig","Cansan",
+  "Casibarag Norte","Casibarag Sur","Catabayungan",
+  "Centro (Poblacion)","Cubag","Garita","Luquilu",
+  "Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
+  "Ngarag","Pilig Abajo","Pilig Alto",
+  "San Antonio (Candanum)","San Bernardo","San Juan",
+  "Saui","Tallag","Ugad","Union"
 ];
 
 function Home() {
   const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
-  const [barangay, setBarangay] = useState('');
+  const [selectedBarangay, setSelectedBarangay] = useState("");
 
   useEffect(() => {
-    fetch('https://cabagan-backend.onrender.com/announcements')
-      .then(res => res.json())
-      .then(data => setAnnouncements(data));
-
-    fetch('https://cabagan-backend.onrender.com/events')
-      .then(res => res.json())
-      .then(data => setEvents(data));
+    fetchData();
   }, []);
 
-  // ✅ MULTI-BARANGAY FILTER
-  const filteredAnnouncements = announcements.filter(a =>
-    !barangay
-      ? true
-      : (a.barangays || ["All"]).includes(barangay) ||
-        (a.barangays || ["All"]).includes("All")
+  const fetchData = async () => {
+    try {
+      const a = await axios.get(`${API}/announcements`);
+      const e = await axios.get(`${API}/events`);
+      setAnnouncements(a.data);
+      setEvents(e.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 🔥 SORT PINNED FIRST
+  const sortPinned = (items) => {
+    return [...items].sort((a, b) => {
+      if (a.pinned === b.pinned) return 0;
+      return a.pinned ? -1 : 1;
+    });
+  };
+
+  // 🔥 FILTER + SORT
+  const filteredAnnouncements = sortPinned(
+    announcements.filter(a =>
+      selectedBarangay === "" ||
+      a.barangays.includes("All") ||
+      a.barangays.includes(selectedBarangay)
+    )
   );
 
-  const filteredEvents = events.filter(e =>
-    !barangay
-      ? true
-      : (e.barangays || ["All"]).includes(barangay) ||
-        (e.barangays || ["All"]).includes("All")
+  const filteredEvents = sortPinned(
+    events.filter(e =>
+      selectedBarangay === "" ||
+      e.barangays.includes("All") ||
+      e.barangays.includes(selectedBarangay)
+    )
   );
 
   return (
-    <div style={{
-      padding: '20px',
-      background: '#f5f7fa',
-      minHeight: '100vh'
-    }}>
-      <h1>📊 Dashboard</h1>
+    <div style={styles.page}>
+      <h1 style={styles.title}>📊 Dashboard</h1>
 
-      {/* DROPDOWN */}
+      {/* FILTER */}
       <select
-        value={barangay}
-        onChange={(e) => setBarangay(e.target.value)}
-        style={{ padding: '10px', borderRadius: '8px' }}
+        value={selectedBarangay}
+        onChange={(e) => setSelectedBarangay(e.target.value)}
+        style={styles.select}
       >
-        <option value="">Select Barangay</option>
-        <option value="All">All Barangays</option>
+        <option value="">🌐 All Barangays</option>
         {barangays.map((b, i) => (
           <option key={i} value={b}>{b}</option>
         ))}
       </select>
 
       {/* ANNOUNCEMENTS */}
-      <h2>📢 Announcements</h2>
+      <h2 style={styles.section}>📢 Announcements</h2>
+
       {filteredAnnouncements.length === 0 ? (
-        <p>No announcements</p>
+        <p style={styles.empty}>No announcements</p>
       ) : (
-        filteredAnnouncements.map(a => (
-          <div key={a.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '10px',
-            borderRadius: '10px'
-          }}>
-            <h3>{a.title}</h3>
-            <p>{a.content}</p>
-            <small>📍 {(a.barangays || ["All"]).join(', ')}</small>
+        filteredAnnouncements.map((a) => (
+          <div key={a.id} style={styles.card}>
+            <h3 style={styles.cardTitle}>
+              {a.pinned && "📌 "} {a.title}
+            </h3>
+            <p style={styles.text}>{a.content}</p>
+            <small style={styles.meta}>
+              📍 {a.barangays.join(", ")}
+            </small>
           </div>
         ))
       )}
 
       {/* EVENTS */}
-      <h2 style={{ marginTop: '30px' }}>🎉 Events</h2>
+      <h2 style={styles.section}>🎉 Events</h2>
+
       {filteredEvents.length === 0 ? (
-        <p>No events</p>
+        <p style={styles.empty}>No events</p>
       ) : (
-        filteredEvents.map(e => (
-          <div key={e.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '10px',
-            borderRadius: '10px'
-          }}>
-            <h3>{e.title}</h3>
-            <p>{e.description}</p>
-            <small>{e.event_date} | {e.location}</small>
-            <br />
-            <small>📍 {(e.barangays || ["All"]).join(', ')}</small>
+        filteredEvents.map((e) => (
+          <div key={e.id} style={styles.card}>
+            <h3 style={styles.cardTitle}>
+              {e.pinned && "📌 "} {e.title}
+            </h3>
+            <p style={styles.text}>{e.description}</p>
+            <small style={styles.meta}>
+              {e.date} • 📍 {e.barangays.join(", ")}
+            </small>
           </div>
         ))
       )}
@@ -103,3 +116,48 @@ function Home() {
 }
 
 export default Home;
+
+const styles = {
+  page: {
+    padding: "20px",
+    background: "#f4f6f9",
+    minHeight: "100vh"
+  },
+  title: {
+    fontSize: "28px",
+    fontWeight: "bold",
+    marginBottom: "15px"
+  },
+  select: {
+    padding: "10px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    marginBottom: "20px",
+    width: "100%",
+    maxWidth: "300px"
+  },
+  section: {
+    marginTop: "25px",
+    marginBottom: "10px",
+    fontSize: "20px"
+  },
+  card: {
+    background: "#fff",
+    padding: "15px",
+    borderRadius: "12px",
+    marginBottom: "12px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+  },
+  cardTitle: {
+    marginBottom: "5px"
+  },
+  text: {
+    marginBottom: "8px"
+  },
+  meta: {
+    color: "#777"
+  },
+  empty: {
+    color: "#777"
+  }
+};
