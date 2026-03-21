@@ -13,7 +13,6 @@ function Home() {
   const [events, setEvents] = useState([]);
   const [barangay, setBarangay] = useState('');
 
-  // ================= FETCH =================
   useEffect(() => {
     fetch('https://cabagan-backend.onrender.com/announcements')
       .then(res => res.json())
@@ -24,20 +23,21 @@ function Home() {
       .then(data => setEvents(data));
   }, []);
 
-  // ================= FILTER LOGIC =================
+  // ✅ MULTI-BARANGAY FILTER
   const filteredAnnouncements = announcements.filter(a =>
     !barangay
       ? true
-      : a.barangay === barangay || a.barangay === "All"
+      : (a.barangays || ["All"]).includes(barangay) ||
+        (a.barangays || ["All"]).includes("All")
   );
 
   const filteredEvents = events.filter(e =>
     !barangay
       ? true
-      : e.barangay === barangay || e.barangay === "All"
+      : (e.barangays || ["All"]).includes(barangay) ||
+        (e.barangays || ["All"]).includes("All")
   );
 
-  // ================= UI =================
   return (
     <div style={{
       padding: '20px',
@@ -46,15 +46,11 @@ function Home() {
     }}>
       <h1>📊 Dashboard</h1>
 
-      {/* ===== Barangay Selector ===== */}
+      {/* DROPDOWN */}
       <select
         value={barangay}
         onChange={(e) => setBarangay(e.target.value)}
-        style={{
-          padding: '10px',
-          borderRadius: '8px',
-          marginBottom: '20px'
-        }}
+        style={{ padding: '10px', borderRadius: '8px' }}
       >
         <option value="">Select Barangay</option>
         <option value="All">All Barangays</option>
@@ -63,9 +59,8 @@ function Home() {
         ))}
       </select>
 
-      {/* ================= ANNOUNCEMENTS ================= */}
+      {/* ANNOUNCEMENTS */}
       <h2>📢 Announcements</h2>
-
       {filteredAnnouncements.length === 0 ? (
         <p>No announcements</p>
       ) : (
@@ -73,24 +68,18 @@ function Home() {
           <div key={a.id} style={{
             background: 'white',
             padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            marginBottom: '10px',
+            borderRadius: '10px'
           }}>
             <h3>{a.title}</h3>
             <p>{a.content}</p>
-
-            {/* Barangay Tag */}
-            <small style={{ color: '#888' }}>
-              📍 {a.barangay || "All"}
-            </small>
+            <small>📍 {(a.barangays || ["All"]).join(', ')}</small>
           </div>
         ))
       )}
 
-      {/* ================= EVENTS ================= */}
+      {/* EVENTS */}
       <h2 style={{ marginTop: '30px' }}>🎉 Events</h2>
-
       {filteredEvents.length === 0 ? (
         <p>No events</p>
       ) : (
@@ -98,21 +87,14 @@ function Home() {
           <div key={e.id} style={{
             background: 'white',
             padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            marginBottom: '10px',
+            borderRadius: '10px'
           }}>
             <h3>{e.title}</h3>
             <p>{e.description}</p>
-
-            <small style={{ display: 'block', color: '#666' }}>
-              📅 {e.event_date} | 📍 {e.location}
-            </small>
-
-            {/* Barangay Tag */}
-            <small style={{ color: '#888' }}>
-              📍 {e.barangay || "All"}
-            </small>
+            <small>{e.event_date} | {e.location}</small>
+            <br />
+            <small>📍 {(e.barangays || ["All"]).join(', ')}</small>
           </div>
         ))
       )}

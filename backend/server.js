@@ -48,7 +48,7 @@ app.post('/announcements', checkAdmin, (req, res) => {
     content: req.body.content,
     image: req.body.image || "",
     pinned: false,
-    barangay: req.body.barangay || "All"
+    barangay: req.body.barangay || ["All"]
   };
 
   data.announcements.push(newItem);
@@ -101,7 +101,7 @@ app.post('/events', checkAdmin, (req, res) => {
     location: req.body.location,
     image: req.body.image || "",
     pinned: false,
-    barangay: req.body.barangay || "All"
+    barangay: req.body.barangay || ["All"]
   };
 
   data.events.push(newEvent);

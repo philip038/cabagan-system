@@ -1,198 +1,135 @@
 import { useEffect, useState } from 'react';
 
-const BARANGAYS = [
-  "All","Aggub","Anao","Angancasilian","Balasig","Cansan",
-  "Casibarag Norte","Casibarag Sur","Catabayungan",
-  "Centro (Poblacion)","Cubag","Garita","Luquilu",
-  "Mabangug","Magassi","Masipi East",
-  "Masipi West (Magallones)","Ngarag","Pilig Abajo",
-  "Pilig Alto","San Antonio (Candanum)","San Bernardo",
-  "San Juan","Saui","Tallag","Ugad","Union"
+const barangaysList = [
+  "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
+  "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
+  "Luquilu","Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
+  "Ngarag","Pilig Abajo","Pilig Alto","San Antonio (Candanum)",
+  "San Bernardo","San Juan","Saui","Tallag","Ugad","Union"
 ];
 
 function Events() {
   const [events, setEvents] = useState([]);
-  const [image, setImage] = useState('');
-  const [barangay, setBarangay] = useState("All");
-
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
+  const [event_date, setEventDate] = useState('');
   const [location, setLocation] = useState('');
+  const [selectedBarangays, setSelectedBarangays] = useState([]);
 
-  const API = "https://cabagan-backend.onrender.com";
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-  const fetchData = () => {
-    fetch(`${API}/events`)
+  useEffect(() => {
+    fetch('https://cabagan-backend.onrender.com/events')
       .then(res => res.json())
       .then(data => setEvents(data));
+  }, []);
+
+  const handleBarangayChange = (e) => {
+    const value = e.target.value;
+
+    setSelectedBarangays(prev =>
+      prev.includes(value)
+        ? prev.filter(b => b !== value)
+        : [...prev, value]
+    );
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const addEvent = async () => {
+    if (!isAdmin) return alert("Unauthorized ❌");
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => setImage(reader.result);
-    if (file) reader.readAsDataURL(file);
-  };
-
-  const addEvent = () => {
-    if (!title || !description || !date || !location) {
-      alert("Fill all fields ❌");
-      return;
+    if (!title || !description || !event_date || !location) {
+      return alert("Please fill all fields");
     }
 
-    fetch(`${API}/events`, {
+    await fetch('https://cabagan-backend.onrender.com/events', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-token': 'secret123'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
         description,
-        event_date: date,
+        event_date,
         location,
-        image,
-        barangay
+        barangays: selectedBarangays.length ? selectedBarangays : ["All"]
       })
-    }).then(() => {
-      alert("Event added ✅");
-      setTitle('');
-      setDescription('');
-      setDate('');
-      setLocation('');
-      setImage('');
-      setBarangay("All");
-      fetchData();
     });
+
+    window.location.reload();
   };
 
-  const deleteEvent = (id) => {
-    if (!window.confirm("Delete this event?")) return;
+  const deleteEvent = async (id) => {
+    if (!isAdmin) return alert("Unauthorized ❌");
 
-    fetch(`${API}/events/${id}`, {
-      method: 'DELETE',
-      headers: { 'x-admin-token': 'secret123' }
-    }).then(() => fetchData());
-  };
-
-  const togglePin = (id) => {
-    fetch(`${API}/events/pin/${id}`, {
-      method: 'PUT',
-      headers: { 'x-admin-token': 'secret123' }
-    }).then(res => {
-      if (res.status === 400) {
-        alert("Max 10 pinned events ❌");
-        return;
-      }
-      fetchData();
+    await fetch(`https://cabagan-backend.onrender.com/events/${id}`, {
+      method: 'DELETE'
     });
+
+    setEvents(events.filter(e => e.id !== id));
   };
 
   return (
-    <div style={{ padding: '30px', background: '#f4f6f9', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', background: '#f5f7fa', minHeight: '100vh' }}>
       <h1>🎉 Cabagan Events</h1>
 
+      {/* ADMIN FORM */}
       {isAdmin && (
-        <div style={card}>
-          <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-          <input style={input} placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-          <input style={input} type="date" value={date} onChange={e => setDate(e.target.value)} />
-          <input style={input} placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '10px',
+          marginBottom: '20px'
+        }}>
+          <h3>Add Event</h3>
 
-          {/* Barangay */}
-          <select style={input} value={barangay} onChange={(e)=>setBarangay(e.target.value)}>
-            {BARANGAYS.map(b => (
-              <option key={b} value={b}>
-                {b === "All" ? "All Barangays" : b}
-              </option>
-            ))}
-          </select>
+          <input placeholder="Title" onChange={e => setTitle(e.target.value)} />
+          <br />
+          <input placeholder="Description" onChange={e => setDescription(e.target.value)} />
+          <br />
+          <input type="date" onChange={e => setEventDate(e.target.value)} />
+          <br />
+          <input placeholder="Location" onChange={e => setLocation(e.target.value)} />
 
-          <input type="file" onChange={handleImage} /><br /><br />
+          <h4>Select Barangays:</h4>
+          {barangaysList.map((b, i) => (
+            <label key={i} style={{ display: 'block' }}>
+              <input type="checkbox" value={b} onChange={handleBarangayChange} />
+              {b}
+            </label>
+          ))}
 
-          <button style={primaryBtn} onClick={addEvent}>Add Event</button>
+          <button onClick={addEvent}>Add Event</button>
         </div>
       )}
 
-      {[...events]
-        .sort((a, b) => b.pinned - a.pinned)
-        .map(e => (
+      {/* DISPLAY */}
+      {events.length === 0 ? (
+        <p>No events available</p>
+      ) : (
+        events.map(e => (
           <div key={e.id} style={{
-            ...card,
-            border: e.pinned ? '2px solid gold' : 'none'
+            background: 'white',
+            padding: '15px',
+            marginBottom: '15px',
+            borderRadius: '10px'
           }}>
-            {e.pinned && <span style={{ color: 'gold' }}>📌 Pinned</span>}
-
             <h3>{e.title}</h3>
             <p>{e.description}</p>
             <small>{e.event_date} | {e.location}</small>
-
-            {e.image && <img src={e.image} alt={e.title} style={img} />}
+            <br />
+            <small>📍 {(e.barangays || ["All"]).join(', ')}</small>
 
             {isAdmin && (
-              <div style={{ marginTop: '10px' }}>
-                <button style={pinBtn} onClick={() => togglePin(e.id)}>
-                  {e.pinned ? "Unpin" : "Pin"}
-                </button>
-
-                <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>
-                  Delete
-                </button>
-              </div>
+              <button
+                onClick={() => deleteEvent(e.id)}
+                style={{ marginTop: '10px', background: 'red', color: 'white' }}
+              >
+                Delete
+              </button>
             )}
           </div>
-        ))}
+        ))
+      )}
     </div>
   );
 }
-
-const card = {
-  background: 'white',
-  padding: '20px',
-  marginBottom: '15px',
-  borderRadius: '12px',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-};
-
-const input = {
-  width: '100%',
-  padding: '10px',
-  marginBottom: '10px'
-};
-
-const primaryBtn = {
-  background: '#2c7be5',
-  color: 'white',
-  padding: '10px',
-  border: 'none',
-  borderRadius: '6px'
-};
-
-const pinBtn = {
-  background: '#ffc107',
-  padding: '8px',
-  marginRight: '10px',
-  border: 'none',
-  borderRadius: '5px'
-};
-
-const deleteBtn = {
-  background: '#dc3545',
-  color: 'white',
-  padding: '8px',
-  border: 'none',
-  borderRadius: '5px'
-};
-
-const img = {
-  width: '100%',
-  marginTop: '10px',
-  borderRadius: '10px'
-};
 
 export default Events;
