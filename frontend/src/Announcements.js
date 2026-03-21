@@ -137,5 +137,12 @@ function Announcements() {
 }
 
 /* reuse styles same as Events */
-
+const page = { padding: '20px', background: '#f4f6f9', minHeight: '100vh' };
+const card = { background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' };
+const input = { width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ccc' };
+const primaryBtn = { padding: '10px', background: '#2c7be5', color: 'white', border: 'none', borderRadius: '8px' };
+const deleteBtn = { background: '#e74c3c', color: 'white', border: 'none', padding: '10px', borderRadius: '8px' };
+const checkboxBox = { maxHeight: '150px', overflowY: 'auto', marginTop: '10px', marginBottom: '10px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' };
+const row = { display: 'flex', justifyContent: 'space-between' };
+const bold = { fontWeight: 'bold', display: 'block', marginBottom: '10px' };
 export default Announcements;
