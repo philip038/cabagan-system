@@ -9,6 +9,13 @@ import Admin from './Admin';
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const isLoggedIn = !!localStorage.getItem('token');
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  };
+
   return (
     <Router>
       <div style={{ fontFamily: 'Arial' }}>
@@ -22,6 +29,12 @@ function App() {
             <Link to="/" style={link}>Home</Link>
             <Link to="/events" style={link}>Events</Link>
             <Link to="/announcements" style={link}>Announcements</Link>
+
+            {isLoggedIn && (
+              <button onClick={logout} style={logoutBtn}>
+                Logout
+              </button>
+            )}
           </div>
 
           {/* HAMBURGER */}
@@ -39,6 +52,12 @@ function App() {
             <Link to="/" style={mobileLink} onClick={() => setMenuOpen(false)}>Home</Link>
             <Link to="/events" style={mobileLink} onClick={() => setMenuOpen(false)}>Events</Link>
             <Link to="/announcements" style={mobileLink} onClick={() => setMenuOpen(false)}>Announcements</Link>
+
+            {isLoggedIn && (
+              <button onClick={logout} style={mobileLogout}>
+                Logout
+              </button>
+            )}
           </div>
         )}
 
@@ -57,6 +76,7 @@ function App() {
         .desktop-menu {
           display: flex;
           gap: 20px;
+          align-items: center;
         }
 
         .hamburger {
@@ -102,6 +122,15 @@ const link = {
   fontWeight: '500'
 };
 
+const logoutBtn = {
+  background: '#e74c3c',
+  color: 'white',
+  border: 'none',
+  padding: '6px 12px',
+  borderRadius: '6px',
+  cursor: 'pointer'
+};
+
 const mobileMenu = {
   background: '#2c7be5',
   display: 'flex',
@@ -113,6 +142,15 @@ const mobileLink = {
   color: 'white',
   padding: '10px 0',
   textDecoration: 'none'
+};
+
+const mobileLogout = {
+  background: '#e74c3c',
+  color: 'white',
+  padding: '10px',
+  border: 'none',
+  marginTop: '10px',
+  borderRadius: '6px'
 };
 
 export default App;

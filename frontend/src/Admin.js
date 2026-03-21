@@ -1,61 +1,37 @@
 import { useState } from 'react';
 
+const API = "https://cabagan-backend.onrender.com";
+
 function Admin() {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
 
-  const login = () => {
-    if (user === 'admin' && pass === 'admin123') {
-      localStorage.setItem('isAdmin', 'true');
-      alert('Login successful ✅');
-      window.location.href = '/';
-    } else {
-      alert('Invalid credentials ❌');
-    }
+  const login = async () => {
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+
+    if (!res.ok) return alert("Invalid login ❌");
+
+    const data = await res.json();
+
+    localStorage.setItem('token', data.token);
+    alert("Login success ✅");
+    window.location.href = "/";
   };
 
   return (
-    <div style={container}>
+    <div style={{ textAlign: 'center', marginTop: 100 }}>
       <h2>Admin Login</h2>
 
-      <input
-        placeholder="Username"
-        value={user}
-        onChange={e => setUser(e.target.value)}
-        style={input}
-      />
+      <input placeholder="Username" onChange={e => setUser(e.target.value)} /><br />
+      <input type="password" placeholder="Password" onChange={e => setPass(e.target.value)} /><br /><br />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={pass}
-        onChange={e => setPass(e.target.value)}
-        style={input}
-      />
-
-      <button onClick={login} style={btn}>Login</button>
+      <button onClick={login}>Login</button>
     </div>
   );
 }
-
-const container = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  marginTop: 100
-};
-
-const input = {
-  margin: 10,
-  padding: 10,
-  width: 200
-};
-
-const btn = {
-  padding: 10,
-  background: '#2c7be5',
-  color: '#fff',
-  border: 'none'
-};
 
 export default Admin;

@@ -1,27 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const DATA_FILE = './data.json';
-const ADMIN_TOKEN = "secret123";
+
+// 🔐 simple in-memory session store
+let sessions = {};
+
+// ADMIN CREDENTIAL
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "admin123";
 
 //
-// 🔐 ADMIN CHECK
-//
-const checkAdmin = (req, res, next) => {
-  const token = req.headers['x-admin-token'];
-  if (token !== ADMIN_TOKEN) {
-    return res.status(403).json({ message: "Forbidden ❌" });
-  }
-  next();
-};
-
-//
-// 📂 READ DATA
+// 📂 HELPERS
 //
 const readData = () => {
   if (!fs.existsSync(DATA_FILE)) {
@@ -30,11 +26,37 @@ const readData = () => {
   return JSON.parse(fs.readFileSync(DATA_FILE));
 };
 
-//
-// 💾 WRITE DATA
-//
 const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+};
+
+//
+// 🔐 LOGIN
+//
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    const token = crypto.randomBytes(16).toString('hex');
+    sessions[token] = true;
+
+    return res.json({ token });
+  }
+
+  res.status(401).json({ message: "Invalid credentials ❌" });
+});
+
+//
+// 🔐 AUTH MIDDLEWARE
+//
+const checkAuth = (req, res, next) => {
+  const token = req.headers.authorization;
+
+  if (!token || !sessions[token]) {
+    return res.status(403).json({ message: "Unauthorized ❌" });
+  }
+
+  next();
 };
 
 //
@@ -43,13 +65,11 @@ const writeData = (data) => {
 // ==========================
 //
 
-// GET
 app.get('/announcements', (req, res) => {
   res.json(readData().announcements);
 });
 
-// CREATE
-app.post('/announcements', checkAdmin, (req, res) => {
+app.post('/announcements', checkAuth, (req, res) => {
   const data = readData();
   const { title, content, barangays } = req.body;
 
@@ -58,10 +78,7 @@ app.post('/announcements', checkAdmin, (req, res) => {
     title,
     content,
     pinned: false,
-    barangays:
-      Array.isArray(barangays) && barangays.length > 0
-        ? barangays
-        : ["All"]
+    barangays: barangays?.length ? barangays : ["All"]
   };
 
   data.announcements.push(newItem);
@@ -70,28 +87,19 @@ app.post('/announcements', checkAdmin, (req, res) => {
   res.json(newItem);
 });
 
-// UPDATE (PIN / EDIT SAFE)
-app.put('/announcements/:id', checkAdmin, (req, res) => {
+app.put('/announcements/:id', checkAuth, (req, res) => {
   const data = readData();
   const id = req.params.id;
 
-  data.announcements = data.announcements.map(a => {
-    if (a.id == id) {
-      return {
-        ...a,               // keep existing data
-        ...req.body,        // update fields
-        id: a.id            // 🔒 prevent id overwrite
-      };
-    }
-    return a;
-  });
+  data.announcements = data.announcements.map(a =>
+    a.id == id ? { ...a, ...req.body, id: a.id } : a
+  );
 
   writeData(data);
   res.json({ message: "Updated" });
 });
 
-// DELETE
-app.delete('/announcements/:id', checkAdmin, (req, res) => {
+app.delete('/announcements/:id', checkAuth, (req, res) => {
   const data = readData();
 
   data.announcements = data.announcements.filter(
@@ -108,13 +116,11 @@ app.delete('/announcements/:id', checkAdmin, (req, res) => {
 // ==========================
 //
 
-// GET
 app.get('/events', (req, res) => {
   res.json(readData().events);
 });
 
-// CREATE
-app.post('/events', checkAdmin, (req, res) => {
+app.post('/events', checkAuth, (req, res) => {
   const data = readData();
   const { title, description, event_date, barangays } = req.body;
 
@@ -124,10 +130,7 @@ app.post('/events', checkAdmin, (req, res) => {
     description,
     event_date,
     pinned: false,
-    barangays:
-      Array.isArray(barangays) && barangays.length > 0
-        ? barangays
-        : ["All"]
+    barangays: barangays?.length ? barangays : ["All"]
   };
 
   data.events.push(newEvent);
@@ -136,28 +139,19 @@ app.post('/events', checkAdmin, (req, res) => {
   res.json(newEvent);
 });
 
-// UPDATE (PIN SAFE)
-app.put('/events/:id', checkAdmin, (req, res) => {
+app.put('/events/:id', checkAuth, (req, res) => {
   const data = readData();
   const id = req.params.id;
 
-  data.events = data.events.map(e => {
-    if (e.id == id) {
-      return {
-        ...e,
-        ...req.body,
-        id: e.id // 🔒 protect id
-      };
-    }
-    return e;
-  });
+  data.events = data.events.map(e =>
+    e.id == id ? { ...e, ...req.body, id: e.id } : e
+  );
 
   writeData(data);
   res.json({ message: "Updated" });
 });
 
-// DELETE
-app.delete('/events/:id', checkAdmin, (req, res) => {
+app.delete('/events/:id', checkAuth, (req, res) => {
   const data = readData();
 
   data.events = data.events.filter(
@@ -169,13 +163,7 @@ app.delete('/events/:id', checkAdmin, (req, res) => {
 });
 
 //
-// ==========================
 // 🚀 SERVER
-// ==========================
 //
-
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log("Server running"));
