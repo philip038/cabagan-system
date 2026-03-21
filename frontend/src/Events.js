@@ -130,7 +130,7 @@ function Events() {
 
             <h3>{e.title}</h3>
             <p>{e.description}</p>
-            <small>{e.event_date} | {e.location} | {e.barangay}</small>
+            <small>{e.event_date} | {e.location}</small>
 
             {e.image && <img src={e.image} alt={e.title} style={img} />}
 
