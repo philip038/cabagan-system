@@ -1,19 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API = "https://cabagan-backend.onrender.com";
+const API = "https://cabagan-backend.onrender.com"; // change if needed
 
-const barangays = [
-  "Aggub","Anao","Angancasilian","Balasig","Cansan",
-  "Casibarag Norte","Casibarag Sur","Catabayungan",
-  "Centro (Poblacion)","Cubag","Garita","Luquilu",
-  "Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
-  "Ngarag","Pilig Abajo","Pilig Alto",
-  "San Antonio (Candanum)","San Bernardo","San Juan",
-  "Saui","Tallag","Ugad","Union"
-];
-
-function Home() {
+const Home = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
   const [selectedBarangay, setSelectedBarangay] = useState("");
@@ -24,140 +14,149 @@ function Home() {
 
   const fetchData = async () => {
     try {
-      const a = await axios.get(`${API}/announcements`);
-      const e = await axios.get(`${API}/events`);
-      setAnnouncements(a.data);
-      setEvents(e.data);
+      const [annRes, eventRes] = await Promise.all([
+        axios.get(`${API}/announcements`),
+        axios.get(`${API}/events`)
+      ]);
+
+      // ✅ FIX: Ensure barangays always array
+      setAnnouncements(
+        annRes.data.map(item => ({
+          ...item,
+          barangays: item.barangays || [],
+          pinned: item.pinned || false
+        }))
+      );
+
+      setEvents(
+        eventRes.data.map(item => ({
+          ...item,
+          barangays: item.barangays || [],
+          pinned: item.pinned || false
+        }))
+      );
     } catch (err) {
-      console.error(err);
+      console.error("Fetch error:", err);
     }
   };
 
-  // 🔥 SORT PINNED FIRST
-  const sortPinned = (items) => {
-    return [...items].sort((a, b) => {
-      if (a.pinned === b.pinned) return 0;
-      return a.pinned ? -1 : 1;
-    });
+  // ✅ FILTER LOGIC
+  const filterByBarangay = (items) => {
+    if (!selectedBarangay) return items;
+
+    return items.filter(item =>
+      item.barangays.length === 0 ||
+      item.barangays.includes(selectedBarangay)
+    );
   };
 
-  // 🔥 FILTER + SORT
-  const filteredAnnouncements = sortPinned(
-    announcements.filter(a =>
-      selectedBarangay === "" ||
-      a.barangays.includes("All") ||
-      a.barangays.includes(selectedBarangay)
-    )
-  );
-
-  const filteredEvents = sortPinned(
-    events.filter(e =>
-      selectedBarangay === "" ||
-      e.barangays.includes("All") ||
-      e.barangays.includes(selectedBarangay)
-    )
-  );
+  // ✅ SORT PINNED FIRST
+  const sortPinned = (items) => {
+    return [...items].sort((a, b) => b.pinned - a.pinned);
+  };
 
   return (
-    <div style={styles.page}>
+    <div style={styles.container}>
       <h1 style={styles.title}>📊 Dashboard</h1>
 
       {/* FILTER */}
       <select
+        style={styles.select}
         value={selectedBarangay}
         onChange={(e) => setSelectedBarangay(e.target.value)}
-        style={styles.select}
       >
-        <option value="">🌐 All Barangays</option>
-        {barangays.map((b, i) => (
-          <option key={i} value={b}>{b}</option>
-        ))}
+        <option value="">All Barangays</option>
+        <option>Aggub</option>
+        <option>Anao</option>
+        <option>Angancasilian</option>
+        <option>Balasig</option>
+        <option>Cansan</option>
+        <option>Centro (Poblacion)</option>
+        {/* add more if needed */}
       </select>
 
       {/* ANNOUNCEMENTS */}
       <h2 style={styles.section}>📢 Announcements</h2>
 
-      {filteredAnnouncements.length === 0 ? (
-        <p style={styles.empty}>No announcements</p>
-      ) : (
-        filteredAnnouncements.map((a) => (
-          <div key={a.id} style={styles.card}>
-            <h3 style={styles.cardTitle}>
-              {a.pinned && "📌 "} {a.title}
-            </h3>
-            <p style={styles.text}>{a.content}</p>
-            <small style={styles.meta}>
-              📍 {a.barangays.join(", ")}
-            </small>
-          </div>
-        ))
-      )}
+      {sortPinned(filterByBarangay(announcements)).map(item => (
+        <div key={item._id} style={styles.card}>
+          {item.pinned && <span style={styles.pin}>📌</span>}
+          <h3>{item.title}</h3>
+          <p>{item.content}</p>
+
+          <small style={styles.tag}>
+            📍{" "}
+            {Array.isArray(item.barangays) && item.barangays.length > 0
+              ? item.barangays.join(", ")
+              : "All"}
+          </small>
+        </div>
+      ))}
 
       {/* EVENTS */}
       <h2 style={styles.section}>🎉 Events</h2>
 
-      {filteredEvents.length === 0 ? (
-        <p style={styles.empty}>No events</p>
-      ) : (
-        filteredEvents.map((e) => (
-          <div key={e.id} style={styles.card}>
-            <h3 style={styles.cardTitle}>
-              {e.pinned && "📌 "} {e.title}
-            </h3>
-            <p style={styles.text}>{e.description}</p>
-            <small style={styles.meta}>
-              {e.date} • 📍 {e.barangays.join(", ")}
-            </small>
-          </div>
-        ))
-      )}
+      {sortPinned(filterByBarangay(events)).map(item => (
+        <div key={item._id} style={styles.card}>
+          {item.pinned && <span style={styles.pin}>📌</span>}
+          <h3>{item.title}</h3>
+          <p>{item.description}</p>
+
+          <small style={styles.tag}>
+            📅 {item.date}
+          </small>
+
+          <br />
+
+          <small style={styles.tag}>
+            📍{" "}
+            {Array.isArray(item.barangays) && item.barangays.length > 0
+              ? item.barangays.join(", ")
+              : "All"}
+          </small>
+        </div>
+      ))}
     </div>
   );
-}
+};
 
 export default Home;
 
 const styles = {
-  page: {
+  container: {
     padding: "20px",
-    background: "#f4f6f9",
-    minHeight: "100vh"
+    maxWidth: "900px",
+    margin: "auto"
   },
   title: {
     fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: "15px"
+    marginBottom: "20px"
+  },
+  section: {
+    marginTop: "30px",
+    marginBottom: "10px"
   },
   select: {
     padding: "10px",
-    borderRadius: "10px",
-    border: "1px solid #ccc",
+    borderRadius: "8px",
     marginBottom: "20px",
-    width: "100%",
-    maxWidth: "300px"
-  },
-  section: {
-    marginTop: "25px",
-    marginBottom: "10px",
-    fontSize: "20px"
+    width: "100%"
   },
   card: {
     background: "#fff",
     padding: "15px",
     borderRadius: "12px",
-    marginBottom: "12px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+    marginBottom: "15px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+    position: "relative"
   },
-  cardTitle: {
-    marginBottom: "5px"
+  pin: {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    fontSize: "18px"
   },
-  text: {
-    marginBottom: "8px"
-  },
-  meta: {
-    color: "#777"
-  },
-  empty: {
-    color: "#777"
+  tag: {
+    color: "#555"
   }
 };
