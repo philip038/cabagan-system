@@ -72,6 +72,23 @@ const Home = () => {
         <option>Balasig</option>
         <option>Cansan</option>
         <option>Centro (Poblacion)</option>
+        <option>Cubag</option>
+        <option>Garita</option>
+        <option>Luquilu</option>
+        <option>Mabangug</option>
+        <option>Magassi</option>
+        <option>Masipi East</option>
+        <option>Masipi West (Magallones)</option>
+        <option>Ngarag</option>
+        <option>Pilig Abajo</option>
+        <option>Pilig Alto</option>
+        <option>San Antonio (Candanum)</option>
+        <option>San Bernardo</option>
+        <option>San Juan</option>
+        <option>Saui</option>
+        <option>Tallag</option>
+        <option>Ugad</option>
+        <option>Union</option>
         {/* add more if needed */}
       </select>
 
