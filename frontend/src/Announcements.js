@@ -22,7 +22,6 @@ function Announcements() {
       .then(data => setAnnouncements(data));
   }, []);
 
-  // ✅ HANDLE MULTI SELECT
   const handleBarangayChange = (e) => {
     const value = e.target.value;
 
@@ -33,10 +32,12 @@ function Announcements() {
     );
   };
 
-  // ✅ ADD ANNOUNCEMENT
   const addAnnouncement = async () => {
     if (!isAdmin) return alert("Unauthorized ❌");
-    if (!title || !content) return alert("Fill all fields");
+
+    if (!title || !content) {
+      return alert("Fill all fields");
+    }
 
     await fetch('https://cabagan-backend.onrender.com/announcements', {
       method: 'POST',
@@ -51,42 +52,139 @@ function Announcements() {
     window.location.reload();
   };
 
+  const deleteAnnouncement = async (id) => {
+    if (!isAdmin) return alert("Unauthorized ❌");
+
+    await fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
+      method: 'DELETE'
+    });
+
+    setAnnouncements(announcements.filter(a => a.id !== id));
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>📢 Announcements</h1>
+    <div style={{
+      padding: '20px',
+      background: '#f4f6f9',
+      minHeight: '100vh'
+    }}>
+      <h1>📢 Cabagan Announcements</h1>
 
-      {/* ADMIN FORM */}
+      {/* ================= ADMIN FORM ================= */}
       {isAdmin && (
-        <div style={{ marginBottom: '20px' }}>
-          <input placeholder="Title" onChange={e => setTitle(e.target.value)} />
-          <textarea placeholder="Content" onChange={e => setContent(e.target.value)} />
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '25px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+        }}>
+          <h3>Add Announcement</h3>
 
-          <h4>Select Barangays:</h4>
-          {barangaysList.map((b, i) => (
-            <label key={i} style={{ display: 'block' }}>
-              <input
-                type="checkbox"
-                value={b}
-                onChange={handleBarangayChange}
-              />
-              {b}
-            </label>
-          ))}
+          <input
+            placeholder="Title"
+            onChange={e => setTitle(e.target.value)}
+            style={inputStyle}
+          />
 
-          <button onClick={addAnnouncement}>Add Announcement</button>
+          <textarea
+            placeholder="Content"
+            onChange={e => setContent(e.target.value)}
+            style={inputStyle}
+          />
+
+          <h4>Select Barangays</h4>
+
+          <div style={{
+            maxHeight: '150px',
+            overflowY: 'auto',
+            border: '1px solid #ddd',
+            padding: '10px',
+            borderRadius: '8px',
+            marginBottom: '10px'
+          }}>
+            {barangaysList.map((b, i) => (
+              <label key={i} style={{ display: 'block' }}>
+                <input type="checkbox" value={b} onChange={handleBarangayChange} />
+                {' '}{b}
+              </label>
+            ))}
+          </div>
+
+          <button style={primaryBtn} onClick={addAnnouncement}>
+            ➕ Add Announcement
+          </button>
         </div>
       )}
 
-      {/* DISPLAY */}
-      {announcements.map(a => (
-        <div key={a.id} style={{ marginBottom: '10px' }}>
-          <h3>{a.title}</h3>
-          <p>{a.content}</p>
-          <small>📍 {a.barangays?.join(', ') || 'All'}</small>
-        </div>
-      ))}
+      {/* ================= LIST ================= */}
+      {announcements.length === 0 ? (
+        <p>No announcements available</p>
+      ) : (
+        announcements.map(a => (
+          <div key={a.id} style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <h3>{a.title}</h3>
+                <p>{a.content}</p>
+
+                <small style={{ color: '#888' }}>
+                  📍 {(a.barangays || ["All"]).join(', ')}
+                </small>
+              </div>
+
+              {/* ✅ DELETE BUTTON FIXED */}
+              {isAdmin && (
+                <button
+                  onClick={() => deleteAnnouncement(a.id)}
+                  style={deleteBtn}
+                >
+                  🗑 Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+
+const inputStyle = {
+  width: '100%',
+  padding: '10px',
+  marginBottom: '10px',
+  borderRadius: '8px',
+  border: '1px solid #ccc'
+};
+
+const primaryBtn = {
+  padding: '10px 15px',
+  background: '#2c7be5',
+  color: 'white',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer'
+};
+
+const deleteBtn = {
+  background: '#e74c3c',
+  color: 'white',
+  border: 'none',
+  padding: '8px 12px',
+  borderRadius: '8px',
+  height: 'fit-content',
+  cursor: 'pointer'
+};
+
+const cardStyle = {
+  background: 'white',
+  padding: '15px',
+  marginBottom: '15px',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+};
 
 export default Announcements;
