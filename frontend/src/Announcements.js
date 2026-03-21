@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API = "https://cabagan-backend.onrender.com";
+
 const barangaysList = [
   "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
   "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
@@ -9,45 +11,36 @@ const barangaysList = [
 ];
 
 function Announcements() {
-  const API = "https://cabagan-backend.onrender.com";
-
-  const [announcements, setAnnouncements] = useState([]);
+  const [data, setData] = useState([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedBarangays, setSelectedBarangays] = useState([]);
-  const [allBarangays, setAllBarangays] = useState(true); // ✅ default ALL
+  const [all, setAll] = useState(true);
+  const [selected, setSelected] = useState([]);
 
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchAnnouncements = () => {
+  const fetchData = () => {
     fetch(`${API}/announcements`)
       .then(res => res.json())
-      .then(setAnnouncements);
+      .then(d => {
+        const sorted = d.sort((a, b) => (b.pinned === true) - (a.pinned === true));
+        setData(sorted);
+      });
   };
 
-  const handleBarangayChange = (value) => {
-    setSelectedBarangays(prev =>
-      prev.includes(value)
-        ? prev.filter(b => b !== value)
-        : [...prev, value]
+  const toggleSelect = (b) => {
+    setSelected(prev =>
+      prev.includes(b)
+        ? prev.filter(x => x !== b)
+        : [...prev, b]
     );
   };
 
-  const addAnnouncement = async () => {
+  const add = async () => {
     if (!isAdmin) return alert("Unauthorized ❌");
-
-    if (!title || !content) {
-      return alert("Fill all fields");
-    }
-
-    const payloadBarangays =
-      allBarangays ? ["All"] :
-      selectedBarangays.length > 0 ? selectedBarangays :
-      ["All"];
+    if (!title || !content) return alert("Fill all fields");
 
     await fetch(`${API}/announcements`, {
       method: 'POST',
@@ -58,73 +51,75 @@ function Announcements() {
       body: JSON.stringify({
         title,
         content,
-        barangays: payloadBarangays
+        barangays: all ? ["All"] : selected
       })
     });
 
-    alert("Announcement added ✅");
-
     setTitle('');
     setContent('');
-    setSelectedBarangays([]);
-    setAllBarangays(true);
-
-    fetchAnnouncements();
+    setSelected([]);
+    setAll(true);
+    fetchData();
   };
 
-  const deleteAnnouncement = async (id) => {
+  const del = async (id) => {
     await fetch(`${API}/announcements/${id}`, {
       method: 'DELETE',
       headers: { 'x-admin-token': 'secret123' }
     });
+    fetchData();
+  };
 
-    fetchAnnouncements();
+  const pin = async (item) => {
+    const count = data.filter(x => x.pinned).length;
+
+    if (!item.pinned && count >= 10) {
+      return alert("Max 10 pinned announcements");
+    }
+
+    await fetch(`${API}/announcements/${item.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': 'secret123'
+      },
+      body: JSON.stringify({ ...item, pinned: !item.pinned })
+    });
+
+    fetchData();
   };
 
   return (
     <div style={page}>
-      <h1>📢 Cabagan Announcements</h1>
+      <h1>📢 Announcements</h1>
 
       {isAdmin && (
         <div style={card}>
-          <h3>Add Announcement</h3>
+          <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+          <textarea style={input} placeholder="Content" value={content} onChange={e => setContent(e.target.value)} />
 
-          <input
-            style={input}
-            placeholder="Title"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
+          <h4>Target Barangays</h4>
 
-          <textarea
-            style={input}
-            placeholder="Content"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-          />
-
-          {/* ALL BARANGAYS */}
           <label style={bold}>
             <input
               type="checkbox"
-              checked={allBarangays}
+              checked={all}
               onChange={() => {
-                setAllBarangays(!allBarangays);
-                setSelectedBarangays([]);
+                setAll(!all);
+                setSelected([]);
               }}
             />
-            {' '}🌐 All Barangays
+            🌐 All Barangays
           </label>
 
-          {/* SHOW ONLY WHEN NOT ALL */}
-          {!allBarangays && (
+          {!all && (
             <div style={checkboxBox}>
               {barangaysList.map((b, i) => (
                 <label key={i}>
                   <input
                     type="checkbox"
-                    checked={selectedBarangays.includes(b)}
-                    onChange={() => handleBarangayChange(b)}
+                    checked={selected.includes(b)}
+                    onChange={() => toggleSelect(b)}
                   />
                   {' '}{b}
                 </label>
@@ -132,28 +127,29 @@ function Announcements() {
             </div>
           )}
 
-          <button style={primaryBtn} onClick={addAnnouncement}>
-            ➕ Add Announcement
-          </button>
+          <button style={primaryBtn} onClick={add}>➕ Add</button>
         </div>
       )}
 
-      {/* LIST */}
-      {announcements.map(a => (
-        <div key={a.id} style={card}>
-          <div style={row}>
-            <div>
-              <h3>{a.title}</h3>
-              <p>{a.content}</p>
-              <small>📍 {(a.barangays || ["All"]).join(', ')}</small>
-            </div>
+      {data.map(item => (
+        <div key={item.id} style={{
+          ...card,
+          borderLeft: item.pinned ? "6px solid gold" : "none"
+        }}>
+          <h3>{item.pinned && "📌"} {item.title}</h3>
+          <p>{item.content}</p>
+          <small>📍 {(item.barangays || ["All"]).join(', ')}</small>
 
-            {isAdmin && (
-              <button style={deleteBtn} onClick={() => deleteAnnouncement(a.id)}>
+          {isAdmin && (
+            <div style={actions}>
+              <button style={pinBtn} onClick={() => pin(item)}>
+                {item.pinned ? "Unpin" : "Pin"}
+              </button>
+              <button style={deleteBtn} onClick={() => del(item.id)}>
                 🗑
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -161,13 +157,14 @@ function Announcements() {
 }
 
 /* STYLES */
-const page = { padding: '20px', background: '#f4f6f9', minHeight: '100vh' };
-const card = { background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' };
-const input = { width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ccc' };
-const primaryBtn = { padding: '10px', background: '#2c7be5', color: 'white', border: 'none', borderRadius: '8px' };
-const deleteBtn = { background: '#e74c3c', color: 'white', border: 'none', padding: '10px', borderRadius: '8px' };
-const checkboxBox = { maxHeight: '150px', overflowY: 'auto', marginTop: '10px', marginBottom: '10px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' };
-const row = { display: 'flex', justifyContent: 'space-between' };
-const bold = { fontWeight: 'bold', display: 'block', marginBottom: '10px' };
+const page = { padding: 20, background: '#f4f6f9', minHeight: '100vh' };
+const card = { background: '#fff', padding: 20, borderRadius: 12, marginBottom: 15 };
+const input = { width: '100%', marginBottom: 10, padding: 10 };
+const primaryBtn = { padding: 10, background: '#2c7be5', color: '#fff', border: 'none', borderRadius: 8 };
+const deleteBtn = { background: '#e74c3c', color: '#fff', padding: 10, borderRadius: 8 };
+const pinBtn = { background: '#f1c40f', padding: 10, borderRadius: 8 };
+const checkboxBox = { maxHeight: 150, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(2,1fr)' };
+const bold = { fontWeight: 'bold', display: 'block', marginBottom: 10 };
+const actions = { display: 'flex', gap: 10, marginTop: 10 };
 
 export default Announcements;

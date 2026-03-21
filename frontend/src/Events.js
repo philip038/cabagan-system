@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API = "https://cabagan-backend.onrender.com";
+
 const barangaysList = [
   "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
   "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
@@ -9,48 +11,38 @@ const barangaysList = [
 ];
 
 function Events() {
-  const API = "https://cabagan-backend.onrender.com";
-
-  const [events, setEvents] = useState([]);
+  const [data, setData] = useState([]);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [event_date, setEventDate] = useState('');
-  const [selectedBarangays, setSelectedBarangays] = useState([]);
-  const [allBarangays, setAllBarangays] = useState(false);
+  const [desc, setDesc] = useState('');
+  const [date, setDate] = useState('');
+  const [all, setAll] = useState(true);
+  const [selected, setSelected] = useState([]);
 
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchEvents = () => {
+  const fetchData = () => {
     fetch(`${API}/events`)
       .then(res => res.json())
-      .then(setEvents);
+      .then(d => {
+        const sorted = d.sort((a, b) => (b.pinned === true) - (a.pinned === true));
+        setData(sorted);
+      });
   };
 
-  const handleBarangayChange = (value) => {
-    if (allBarangays) return;
-
-    setSelectedBarangays(prev =>
-      prev.includes(value)
-        ? prev.filter(b => b !== value)
-        : [...prev, value]
+  const toggleSelect = (b) => {
+    setSelected(prev =>
+      prev.includes(b)
+        ? prev.filter(x => x !== b)
+        : [...prev, b]
     );
   };
 
-  const addEvent = async () => {
+  const add = async () => {
     if (!isAdmin) return alert("Unauthorized ❌");
 
-    if (!title || !description || !event_date) {
-      return alert("Fill all fields");
-    }
-
-    const payloadBarangays =
-      allBarangays ? ["All"] :
-      selectedBarangays.length > 0 ? selectedBarangays :
-      ["All"];
-
-    const res = await fetch(`${API}/events`, {
+    await fetch(`${API}/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,103 +50,110 @@ function Events() {
       },
       body: JSON.stringify({
         title,
-        description,
-        event_date,
-        barangays: payloadBarangays
+        description: desc,
+        event_date: date,
+        barangays: all ? ["All"] : selected
       })
     });
 
-    if (res.status === 403) return alert("Unauthorized ❌");
-
-    alert("Event added ✅");
-
     setTitle('');
-    setDescription('');
-    setEventDate('');
-    setSelectedBarangays([]);
-    setAllBarangays(false);
-
-    fetchEvents();
+    setDesc('');
+    setDate('');
+    setSelected([]);
+    setAll(true);
+    fetchData();
   };
 
-  const deleteEvent = async (id) => {
+  const del = async (id) => {
     await fetch(`${API}/events/${id}`, {
       method: 'DELETE',
       headers: { 'x-admin-token': 'secret123' }
     });
+    fetchData();
+  };
 
-    fetchEvents();
+  const pin = async (item) => {
+    const count = data.filter(x => x.pinned).length;
+
+    if (!item.pinned && count >= 10) {
+      return alert("Max 10 pinned events");
+    }
+
+    await fetch(`${API}/events/${item.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': 'secret123'
+      },
+      body: JSON.stringify({ ...item, pinned: !item.pinned })
+    });
+
+    fetchData();
   };
 
   return (
     <div style={page}>
-      <h1>🎉 Cabagan Events</h1>
+      <h1>🎉 Events</h1>
 
       {isAdmin && (
         <div style={card}>
-          <h3>Add Event</h3>
-
-          <input style={input} placeholder="Title"
-            value={title} onChange={e => setTitle(e.target.value)} />
-
-          <input style={input} placeholder="Description"
-            value={description} onChange={e => setDescription(e.target.value)} />
-
-          <input style={input} type="date"
-            value={event_date} onChange={e => setEventDate(e.target.value)} />
+          <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+          <input style={input} placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} />
+          <input type="date" style={input} value={date} onChange={e => setDate(e.target.value)} />
 
           <h4>Target Barangays</h4>
 
-          {/* ALL BARANGAYS */}
           <label style={bold}>
             <input
               type="checkbox"
-              checked={allBarangays}
+              checked={all}
               onChange={() => {
-                setAllBarangays(!allBarangays);
-                setSelectedBarangays([]);
+                setAll(!all);
+                setSelected([]);
               }}
             />
-            {' '}🌐 All Barangays
+            🌐 All Barangays
           </label>
 
-          {/* LIST */}
-          <div style={checkboxBox}>
-            {barangaysList.map((b, i) => (
-              <label key={i}>
-                <input
-                  type="checkbox"
-                  checked={selectedBarangays.includes(b)}
-                  disabled={allBarangays}
-                  onChange={() => handleBarangayChange(b)}
-                />
-                {' '}{b}
-              </label>
-            ))}
-          </div>
+          {!all && (
+            <div style={checkboxBox}>
+              {barangaysList.map((b, i) => (
+                <label key={i}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(b)}
+                    onChange={() => toggleSelect(b)}
+                  />
+                  {' '}{b}
+                </label>
+              ))}
+            </div>
+          )}
 
-          <button style={primaryBtn} onClick={addEvent}>
-            ➕ Add Event
-          </button>
+          <button style={primaryBtn} onClick={add}>➕ Add Event</button>
         </div>
       )}
 
-      {events.map(e => (
-        <div key={e.id} style={card}>
-          <div style={row}>
-            <div>
-              <h3>{e.title}</h3>
-              <p>{e.description}</p>
-              <small>📅 {e.event_date}</small><br />
-              <small>📍 {(e.barangays || ["All"]).join(', ')}</small>
-            </div>
+      {data.map(item => (
+        <div key={item.id} style={{
+          ...card,
+          borderLeft: item.pinned ? "6px solid gold" : "none"
+        }}>
+          <h3>{item.pinned && "📌"} {item.title}</h3>
+          <p>{item.description}</p>
+          <small>📅 {item.event_date}</small><br />
+          <small>📍 {(item.barangays || ["All"]).join(', ')}</small>
 
-            {isAdmin && (
-              <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>
+          {isAdmin && (
+            <div style={actions}>
+              <button style={pinBtn} onClick={() => pin(item)}>
+                {item.pinned ? "Unpin" : "Pin"}
+              </button>
+              <button style={deleteBtn} onClick={() => del(item.id)}>
                 🗑
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -162,13 +161,14 @@ function Events() {
 }
 
 /* STYLES */
-const page = { padding: '20px', background: '#f4f6f9', minHeight: '100vh' };
-const card = { background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' };
-const input = { width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ccc' };
-const primaryBtn = { padding: '10px', background: '#2c7be5', color: 'white', border: 'none', borderRadius: '8px' };
-const deleteBtn = { background: '#e74c3c', color: 'white', border: 'none', padding: '10px', borderRadius: '8px' };
-const checkboxBox = { maxHeight: '150px', overflowY: 'auto', marginTop: '10px', marginBottom: '10px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' };
-const row = { display: 'flex', justifyContent: 'space-between' };
-const bold = { fontWeight: 'bold', display: 'block', marginBottom: '10px' };
+const page = { padding: 20, background: '#f4f6f9', minHeight: '100vh' };
+const card = { background: '#fff', padding: 20, borderRadius: 12, marginBottom: 15 };
+const input = { width: '100%', marginBottom: 10, padding: 10 };
+const primaryBtn = { padding: 10, background: '#2c7be5', color: '#fff', border: 'none', borderRadius: 8 };
+const deleteBtn = { background: '#e74c3c', color: '#fff', padding: 10, borderRadius: 8 };
+const pinBtn = { background: '#f1c40f', padding: 10, borderRadius: 8 };
+const checkboxBox = { maxHeight: 150, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(2,1fr)' };
+const bold = { fontWeight: 'bold', display: 'block', marginBottom: 10 };
+const actions = { display: 'flex', gap: 10, marginTop: 10 };
 
 export default Events;
