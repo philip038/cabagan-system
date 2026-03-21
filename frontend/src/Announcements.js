@@ -15,12 +15,15 @@ function Announcements() {
   const [selectedBarangays, setSelectedBarangays] = useState([]);
 
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const API = "https://cabagan-backend.onrender.com";
 
-  useEffect(() => {
-    fetch('https://cabagan-backend.onrender.com/announcements')
+  const fetchData = () => {
+    fetch(`${API}/announcements`)
       .then(res => res.json())
-      .then(data => setAnnouncements(data));
-  }, []);
+      .then(setAnnouncements);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const handleBarangayChange = (e) => {
     const value = e.target.value;
@@ -35,13 +38,14 @@ function Announcements() {
   const addAnnouncement = async () => {
     if (!isAdmin) return alert("Unauthorized ❌");
 
-    if (!title || !content) {
-      return alert("Fill all fields");
-    }
+    if (!title || !content) return alert("Fill all fields");
 
-    await fetch('https://cabagan-backend.onrender.com/announcements', {
+    const res = await fetch(`${API}/announcements`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': 'secret123'
+      },
       body: JSON.stringify({
         title,
         content,
@@ -49,142 +53,81 @@ function Announcements() {
       })
     });
 
-    window.location.reload();
+    if (res.status === 403) return alert("Not authorized ❌");
+
+    alert("Added ✅");
+
+    setTitle('');
+    setContent('');
+    setSelectedBarangays([]);
+
+    fetchData();
   };
 
   const deleteAnnouncement = async (id) => {
-    if (!isAdmin) return alert("Unauthorized ❌");
+    if (!isAdmin) return;
 
-    await fetch(`https://cabagan-backend.onrender.com/announcements/${id}`, {
-      method: 'DELETE'
+    await fetch(`${API}/announcements/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-token': 'secret123' }
     });
 
-    setAnnouncements(announcements.filter(a => a.id !== id));
+    fetchData();
   };
 
   return (
-    <div style={{
-      padding: '20px',
-      background: '#f4f6f9',
-      minHeight: '100vh'
-    }}>
-      <h1>📢 Cabagan Announcements</h1>
+    <div style={page}>
+      <h1>📢 Announcements</h1>
 
-      {/* ================= ADMIN FORM ================= */}
       {isAdmin && (
-        <div style={{
-          background: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          marginBottom: '25px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-        }}>
+        <div style={card}>
           <h3>Add Announcement</h3>
 
-          <input
-            placeholder="Title"
-            onChange={e => setTitle(e.target.value)}
-            style={inputStyle}
-          />
-
-          <textarea
-            placeholder="Content"
-            onChange={e => setContent(e.target.value)}
-            style={inputStyle}
-          />
+          <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+          <textarea style={input} placeholder="Content" value={content} onChange={e => setContent(e.target.value)} />
 
           <h4>Select Barangays</h4>
-
-          <div style={{
-            maxHeight: '150px',
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '8px',
-            marginBottom: '10px'
-          }}>
+          <div style={checkboxBox}>
             {barangaysList.map((b, i) => (
-              <label key={i} style={{ display: 'block' }}>
+              <label key={i}>
                 <input type="checkbox" value={b} onChange={handleBarangayChange} />
                 {' '}{b}
               </label>
             ))}
           </div>
 
-          <button style={primaryBtn} onClick={addAnnouncement}>
-            ➕ Add Announcement
-          </button>
+          <button style={primaryBtn} onClick={addAnnouncement}>➕ Add</button>
         </div>
       )}
 
-      {/* ================= LIST ================= */}
-      {announcements.length === 0 ? (
-        <p>No announcements available</p>
-      ) : (
-        announcements.map(a => (
-          <div key={a.id} style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <h3>{a.title}</h3>
-                <p>{a.content}</p>
-
-                <small style={{ color: '#888' }}>
-                  📍 {(a.barangays || ["All"]).join(', ')}
-                </small>
-              </div>
-
-              {/* ✅ DELETE BUTTON FIXED */}
-              {isAdmin && (
-                <button
-                  onClick={() => deleteAnnouncement(a.id)}
-                  style={deleteBtn}
-                >
-                  🗑 Delete
-                </button>
-              )}
+      {announcements.map(a => (
+        <div key={a.id} style={card}>
+          <div style={row}>
+            <div>
+              <h3>{a.title}</h3>
+              <p>{a.content}</p>
+              <small>📍 {(a.barangays || ["All"]).join(', ')}</small>
             </div>
+
+            {isAdmin && (
+              <button style={deleteBtn} onClick={() => deleteAnnouncement(a.id)}>
+                🗑
+              </button>
+            )}
           </div>
-        ))
-      )}
+        </div>
+      ))}
     </div>
   );
 }
 
-/* ================= STYLES ================= */
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px',
-  marginBottom: '10px',
-  borderRadius: '8px',
-  border: '1px solid #ccc'
-};
-
-const primaryBtn = {
-  padding: '10px 15px',
-  background: '#2c7be5',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer'
-};
-
-const deleteBtn = {
-  background: '#e74c3c',
-  color: 'white',
-  border: 'none',
-  padding: '8px 12px',
-  borderRadius: '8px',
-  height: 'fit-content',
-  cursor: 'pointer'
-};
-
-const cardStyle = {
-  background: 'white',
-  padding: '15px',
-  marginBottom: '15px',
-  borderRadius: '12px',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-};
+/* STYLES */
+const page = { padding: '20px', background: '#f4f6f9', minHeight: '100vh' };
+const card = { background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' };
+const input = { width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ccc' };
+const primaryBtn = { padding: '10px', background: '#2c7be5', color: 'white', border: 'none', borderRadius: '8px' };
+const deleteBtn = { background: '#e74c3c', color: 'white', border: 'none', padding: '8px', borderRadius: '8px' };
+const checkboxBox = { maxHeight: '150px', overflowY: 'auto', marginBottom: '10px' };
+const row = { display: 'flex', justifyContent: 'space-between' };
 
 export default Announcements;
