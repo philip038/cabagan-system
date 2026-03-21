@@ -1,76 +1,45 @@
 import { useEffect, useState } from 'react';
 
+const BARANGAYS = [ "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte","Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita","Luquilu","Mabangug","Magassi","Masipi East","Masipi West (Magallones)","Ngarag","Pilig Abajo","Pilig Alto","San Antonio (Candanum)","San Bernardo","San Juan","Saui","Tallag","Ugad","Union" ];
+
 function Home() {
-  const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [barangay, setBarangay] = useState(localStorage.getItem("barangay") || "");
 
-  // Fetch announcements
-  const fetchAnnouncements = () => {
-    fetch('https://cabagan-backend.onrender.com/announcements')
-      .then(res => res.json())
-      .then(data => setAnnouncements(data));
-  };
-
-  // Fetch events
-  const fetchEvents = () => {
-    fetch('https://cabagan-backend.onrender.com/events')
-      .then(res => res.json())
-      .then(data => setEvents(data));
-  };
+  const API = "https://cabagan-backend.onrender.com";
 
   useEffect(() => {
-    fetchAnnouncements();
-    fetchEvents();
+    fetch(`${API}/events`).then(r=>r.json()).then(setEvents);
+    fetch(`${API}/announcements`).then(r=>r.json()).then(setAnnouncements);
   }, []);
 
   return (
-    <div style={{
-      padding: '20px',
-      background: '#f5f7fa',
-      minHeight: '100vh'
-    }}>
-      <h1 style={{ marginBottom: '20px' }}>Cabagan Dashboard</h1>
+    <div style={{ padding: '20px' }}>
+      <h1>Dashboard</h1>
 
-      {/* ================= ANNOUNCEMENTS ================= */}
+      <select
+        value={barangay}
+        onChange={(e)=>{
+          setBarangay(e.target.value);
+          localStorage.setItem("barangay", e.target.value);
+        }}
+      >
+        <option value="">Select Barangay</option>
+        {BARANGAYS.map(b => <option key={b}>{b}</option>)}
+      </select>
+
       <h2>📢 Announcements</h2>
+      {announcements
+        .filter(a => a.barangay === "All" || a.barangay === barangay)
+        .map(a => <p key={a.id}>{a.title}</p>)
+      }
 
-      {announcements.length === 0 ? (
-        <p>No announcements available</p>
-      ) : (
-        announcements.map(a => (
-          <div key={a.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h3>{a.title}</h3>
-            <p>{a.content}</p>
-          </div>
-        ))
-      )}
-
-      {/* ================= EVENTS ================= */}
-      <h2 style={{ marginTop: '30px' }}>🎉 Events</h2>
-
-      {events.length === 0 ? (
-        <p>No events available</p>
-      ) : (
-        events.map(e => (
-          <div key={e.id} style={{
-            background: 'white',
-            padding: '15px',
-            marginBottom: '15px',
-            borderRadius: '10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h3>{e.title}</h3>
-            <p>{e.description}</p>
-            <small>{e.event_date} | {e.location}</small>
-          </div>
-        ))
-      )}
+      <h2>🎉 Events</h2>
+      {events
+        .filter(e => e.barangay === "All" || e.barangay === barangay)
+        .map(e => <p key={e.id}>{e.title}</p>)
+      }
     </div>
   );
 }

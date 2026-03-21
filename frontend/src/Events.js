@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
 
+const BARANGAYS = [
+  "All","Aggub","Anao","Angancasilian","Balasig","Cansan",
+  "Casibarag Norte","Casibarag Sur","Catabayungan",
+  "Centro (Poblacion)","Cubag","Garita","Luquilu",
+  "Mabangug","Magassi","Masipi East",
+  "Masipi West (Magallones)","Ngarag","Pilig Abajo",
+  "Pilig Alto","San Antonio (Candanum)","San Bernardo",
+  "San Juan","Saui","Tallag","Ugad","Union"
+];
+
 function Events() {
   const [events, setEvents] = useState([]);
   const [image, setImage] = useState('');
+  const [barangay, setBarangay] = useState("All");
+
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   const [title, setTitle] = useState('');
@@ -44,7 +56,8 @@ function Events() {
         description,
         event_date: date,
         location,
-        image
+        image,
+        barangay
       })
     }).then(() => {
       alert("Event added ✅");
@@ -53,6 +66,7 @@ function Events() {
       setDate('');
       setLocation('');
       setImage('');
+      setBarangay("All");
       fetchData();
     });
   };
@@ -84,51 +98,60 @@ function Events() {
       <h1>🎉 Cabagan Events</h1>
 
       {isAdmin && (
-        <div style={cardStyle}>
-          <input style={inputStyle} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-          <input style={inputStyle} placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-          <input style={inputStyle} type="date" value={date} onChange={e => setDate(e.target.value)} />
-          <input style={inputStyle} placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
-          <input type="file" onChange={handleImage} />
-          <br /><br />
+        <div style={card}>
+          <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+          <input style={input} placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
+          <input style={input} type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <input style={input} placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
+
+          {/* Barangay */}
+          <select style={input} value={barangay} onChange={(e)=>setBarangay(e.target.value)}>
+            {BARANGAYS.map(b => (
+              <option key={b} value={b}>
+                {b === "All" ? "All Barangays" : b}
+              </option>
+            ))}
+          </select>
+
+          <input type="file" onChange={handleImage} /><br /><br />
+
           <button style={primaryBtn} onClick={addEvent}>Add Event</button>
         </div>
       )}
 
-      {[...events].sort((a, b) => b.pinned - a.pinned).map(e => (
-        <div key={e.id} style={{
-          ...cardStyle,
-          border: e.pinned ? '2px solid gold' : 'none'
-        }}>
-          {e.pinned && <span style={{ color: 'gold' }}>📌 Pinned</span>}
+      {[...events]
+        .sort((a, b) => b.pinned - a.pinned)
+        .map(e => (
+          <div key={e.id} style={{
+            ...card,
+            border: e.pinned ? '2px solid gold' : 'none'
+          }}>
+            {e.pinned && <span style={{ color: 'gold' }}>📌 Pinned</span>}
 
-          <h3>{e.title}</h3>
-          <p>{e.description}</p>
-          <small>{e.event_date} | {e.location}</small>
+            <h3>{e.title}</h3>
+            <p>{e.description}</p>
+            <small>{e.event_date} | {e.location} | {e.barangay}</small>
 
-          {e.image && (
-            <img src={e.image} alt={e.title} style={imgStyle} />
-          )}
+            {e.image && <img src={e.image} alt={e.title} style={img} />}
 
-          {isAdmin && (
-            <div style={{ marginTop: '10px' }}>
-              <button style={pinBtn} onClick={() => togglePin(e.id)}>
-                {e.pinned ? "Unpin" : "Pin"}
-              </button>
+            {isAdmin && (
+              <div style={{ marginTop: '10px' }}>
+                <button style={pinBtn} onClick={() => togglePin(e.id)}>
+                  {e.pinned ? "Unpin" : "Pin"}
+                </button>
 
-              <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
+                <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
     </div>
   );
 }
 
-// 🎨 STYLES
-const cardStyle = {
+const card = {
   background: 'white',
   padding: '20px',
   marginBottom: '15px',
@@ -136,7 +159,7 @@ const cardStyle = {
   boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
 };
 
-const inputStyle = {
+const input = {
   width: '100%',
   padding: '10px',
   marginBottom: '10px'
@@ -145,28 +168,28 @@ const inputStyle = {
 const primaryBtn = {
   background: '#2c7be5',
   color: 'white',
-  padding: '10px 15px',
+  padding: '10px',
   border: 'none',
   borderRadius: '6px'
 };
 
 const pinBtn = {
   background: '#ffc107',
-  border: 'none',
-  padding: '8px 12px',
+  padding: '8px',
   marginRight: '10px',
+  border: 'none',
   borderRadius: '5px'
 };
 
 const deleteBtn = {
   background: '#dc3545',
   color: 'white',
+  padding: '8px',
   border: 'none',
-  padding: '8px 12px',
   borderRadius: '5px'
 };
 
-const imgStyle = {
+const img = {
   width: '100%',
   marginTop: '10px',
   borderRadius: '10px'

@@ -36,8 +36,7 @@ const writeData = (data) => {
 //
 
 app.get('/announcements', (req, res) => {
-  const data = readData();
-  res.json(data.announcements);
+  res.json(readData().announcements);
 });
 
 app.post('/announcements', checkAdmin, (req, res) => {
@@ -48,7 +47,8 @@ app.post('/announcements', checkAdmin, (req, res) => {
     title: req.body.title,
     content: req.body.content,
     image: req.body.image || "",
-    pinned: false
+    pinned: false,
+    barangay: req.body.barangay || "All"
   };
 
   data.announcements.push(newItem);
@@ -64,24 +64,21 @@ app.delete('/announcements/:id', checkAdmin, (req, res) => {
   res.json({ message: "Deleted" });
 });
 
-// 📌 PIN ANNOUNCEMENT (LIMIT 10)
 app.put('/announcements/pin/:id', checkAdmin, (req, res) => {
   const data = readData();
 
   const pinnedCount = data.announcements.filter(a => a.pinned).length;
-
   const target = data.announcements.find(a => a.id == req.params.id);
 
   if (!target) return res.status(404).json({ message: "Not found" });
 
-  // ❌ LIMIT
   if (!target.pinned && pinnedCount >= 10) {
-    return res.status(400).json({ message: "Max 10 pinned announcements ❌" });
+    return res.status(400).json({ message: "Max 10 pinned ❌" });
   }
 
   target.pinned = !target.pinned;
-
   writeData(data);
+
   res.json({ message: "Updated" });
 });
 
@@ -90,8 +87,7 @@ app.put('/announcements/pin/:id', checkAdmin, (req, res) => {
 //
 
 app.get('/events', (req, res) => {
-  const data = readData();
-  res.json(data.events);
+  res.json(readData().events);
 });
 
 app.post('/events', checkAdmin, (req, res) => {
@@ -104,7 +100,8 @@ app.post('/events', checkAdmin, (req, res) => {
     event_date: req.body.event_date,
     location: req.body.location,
     image: req.body.image || "",
-    pinned: false
+    pinned: false,
+    barangay: req.body.barangay || "All"
   };
 
   data.events.push(newEvent);
@@ -120,24 +117,21 @@ app.delete('/events/:id', checkAdmin, (req, res) => {
   res.json({ message: "Deleted" });
 });
 
-// 📌 PIN EVENT (LIMIT 10)
 app.put('/events/pin/:id', checkAdmin, (req, res) => {
   const data = readData();
 
   const pinnedCount = data.events.filter(e => e.pinned).length;
-
   const target = data.events.find(e => e.id == req.params.id);
 
   if (!target) return res.status(404).json({ message: "Not found" });
 
-  // ❌ LIMIT
   if (!target.pinned && pinnedCount >= 10) {
-    return res.status(400).json({ message: "Max 10 pinned events ❌" });
+    return res.status(400).json({ message: "Max 10 pinned ❌" });
   }
 
   target.pinned = !target.pinned;
-
   writeData(data);
+
   res.json({ message: "Updated" });
 });
 
