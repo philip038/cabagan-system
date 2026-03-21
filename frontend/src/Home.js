@@ -1,111 +1,123 @@
 import { useEffect, useState } from 'react';
 
-const BARANGAYS = [
-  "Aggub","Anao","Angancasilian","Balasig","Cansan",
-  "Casibarag Norte","Casibarag Sur","Catabayungan",
-  "Centro (Poblacion)","Cubag","Garita","Luquilu",
-  "Mabangug","Magassi","Masipi East",
-  "Masipi West (Magallones)","Ngarag","Pilig Abajo",
-  "Pilig Alto","San Antonio (Candanum)","San Bernardo",
-  "San Juan","Saui","Tallag","Ugad","Union"
+const barangays = [
+  "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
+  "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
+  "Luquilu","Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
+  "Ngarag","Pilig Abajo","Pilig Alto","San Antonio (Candanum)",
+  "San Bernardo","San Juan","Saui","Tallag","Ugad","Union"
 ];
 
 function Home() {
-  const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [barangay, setBarangay] = useState(localStorage.getItem("barangay") || "");
+  const [events, setEvents] = useState([]);
+  const [barangay, setBarangay] = useState('');
 
-  const API = "https://cabagan-backend.onrender.com";
-
+  // ================= FETCH =================
   useEffect(() => {
-    fetch(`${API}/events`).then(r => r.json()).then(setEvents);
-    fetch(`${API}/announcements`).then(r => r.json()).then(setAnnouncements);
+    fetch('https://cabagan-backend.onrender.com/announcements')
+      .then(res => res.json())
+      .then(data => setAnnouncements(data));
+
+    fetch('https://cabagan-backend.onrender.com/events')
+      .then(res => res.json())
+      .then(data => setEvents(data));
   }, []);
 
-  const filteredAnnouncements = announcements.filter(
-    a => a.barangay === "All" || a.barangay === barangay
+  // ================= FILTER LOGIC =================
+  const filteredAnnouncements = announcements.filter(a =>
+    !barangay
+      ? true
+      : a.barangay === barangay || a.barangay === "All"
   );
 
-  const filteredEvents = events.filter(
-    e => e.barangay === "All" || e.barangay === barangay
+  const filteredEvents = events.filter(e =>
+    !barangay
+      ? true
+      : e.barangay === barangay || e.barangay === "All"
   );
 
+  // ================= UI =================
   return (
-    <div style={{ padding: '30px', background: '#f4f6f9', minHeight: '100vh' }}>
+    <div style={{
+      padding: '20px',
+      background: '#f5f7fa',
+      minHeight: '100vh'
+    }}>
       <h1>📊 Dashboard</h1>
 
-      {/* Barangay Selector */}
+      {/* ===== Barangay Selector ===== */}
       <select
         value={barangay}
-        onChange={(e) => {
-          setBarangay(e.target.value);
-          localStorage.setItem("barangay", e.target.value);
-        }}
+        onChange={(e) => setBarangay(e.target.value)}
         style={{
           padding: '10px',
-          marginBottom: '20px',
-          borderRadius: '6px'
+          borderRadius: '8px',
+          marginBottom: '20px'
         }}
       >
         <option value="">Select Barangay</option>
-        {BARANGAYS.map(b => (
-          <option key={b} value={b}>{b}</option>
+        <option value="All">All Barangays</option>
+        {barangays.map((b, i) => (
+          <option key={i} value={b}>{b}</option>
         ))}
       </select>
 
-      {/* ANNOUNCEMENTS */}
+      {/* ================= ANNOUNCEMENTS ================= */}
       <h2>📢 Announcements</h2>
 
       {filteredAnnouncements.length === 0 ? (
         <p>No announcements</p>
       ) : (
         filteredAnnouncements.map(a => (
-          <div key={a.id} style={card}>
+          <div key={a.id} style={{
+            background: 'white',
+            padding: '15px',
+            marginBottom: '15px',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
             <h3>{a.title}</h3>
             <p>{a.content}</p>
-            <small>{a.barangay}</small>
 
-            {a.image && (
-              <img src={a.image} alt={a.title} style={img} />
-            )}
+            {/* Barangay Tag */}
+            <small style={{ color: '#888' }}>
+              📍 {a.barangay || "All"}
+            </small>
           </div>
         ))
       )}
 
-      {/* EVENTS */}
+      {/* ================= EVENTS ================= */}
       <h2 style={{ marginTop: '30px' }}>🎉 Events</h2>
 
       {filteredEvents.length === 0 ? (
         <p>No events</p>
       ) : (
         filteredEvents.map(e => (
-          <div key={e.id} style={card}>
+          <div key={e.id} style={{
+            background: 'white',
+            padding: '15px',
+            marginBottom: '15px',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
             <h3>{e.title}</h3>
             <p>{e.description}</p>
-            <small>{e.event_date} | {e.location} | {e.barangay}</small>
 
-            {e.image && (
-              <img src={e.image} alt={e.title} style={img} />
-            )}
+            <small style={{ display: 'block', color: '#666' }}>
+              📅 {e.event_date} | 📍 {e.location}
+            </small>
+
+            {/* Barangay Tag */}
+            <small style={{ color: '#888' }}>
+              📍 {e.barangay || "All"}
+            </small>
           </div>
         ))
       )}
     </div>
   );
 }
-
-const card = {
-  background: 'white',
-  padding: '20px',
-  marginBottom: '15px',
-  borderRadius: '12px',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-};
-
-const img = {
-  width: '100%',
-  marginTop: '10px',
-  borderRadius: '10px'
-};
 
 export default Home;
