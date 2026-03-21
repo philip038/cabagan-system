@@ -1,18 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const DATA_FILE = './data.json';
+const SECRET = "cabagan-secret-key";
 
-// 🔐 simple in-memory session store
-let sessions = {};
-
-// ADMIN CREDENTIAL
+// 👤 ADMIN CREDENTIAL (change later)
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
 
@@ -37,48 +35,45 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   if (username === ADMIN_USER && password === ADMIN_PASS) {
-    const token = crypto.randomBytes(16).toString('hex');
-    sessions[token] = true;
-
+    const token = jwt.sign({ role: "admin" }, SECRET, { expiresIn: "1d" });
     return res.json({ token });
   }
 
-  res.status(401).json({ message: "Invalid credentials ❌" });
+  res.status(401).json({ message: "Invalid credentials" });
 });
 
 //
-// 🔐 AUTH MIDDLEWARE
+// 🔐 VERIFY TOKEN
 //
-const checkAuth = (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const token = req.headers.authorization;
 
-  if (!token || !sessions[token]) {
-    return res.status(403).json({ message: "Unauthorized ❌" });
-  }
+  if (!token) return res.status(403).json({ message: "No token" });
 
-  next();
+  try {
+    jwt.verify(token, SECRET);
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
+  }
 };
 
 //
-// ==========================
 // 📢 ANNOUNCEMENTS
-// ==========================
 //
-
 app.get('/announcements', (req, res) => {
   res.json(readData().announcements);
 });
 
-app.post('/announcements', checkAuth, (req, res) => {
+app.post('/announcements', verifyToken, (req, res) => {
   const data = readData();
-  const { title, content, barangays } = req.body;
 
   const newItem = {
     id: Date.now(),
-    title,
-    content,
-    pinned: false,
-    barangays: barangays?.length ? barangays : ["All"]
+    title: req.body.title,
+    content: req.body.content,
+    barangays: req.body.barangays || ["All"],
+    pinned: false
   };
 
   data.announcements.push(newItem);
@@ -87,19 +82,18 @@ app.post('/announcements', checkAuth, (req, res) => {
   res.json(newItem);
 });
 
-app.put('/announcements/:id', checkAuth, (req, res) => {
+app.put('/announcements/:id', verifyToken, (req, res) => {
   const data = readData();
-  const id = req.params.id;
 
   data.announcements = data.announcements.map(a =>
-    a.id == id ? { ...a, ...req.body, id: a.id } : a
+    a.id == req.params.id ? { ...a, ...req.body } : a
   );
 
   writeData(data);
   res.json({ message: "Updated" });
 });
 
-app.delete('/announcements/:id', checkAuth, (req, res) => {
+app.delete('/announcements/:id', verifyToken, (req, res) => {
   const data = readData();
 
   data.announcements = data.announcements.filter(
@@ -111,26 +105,22 @@ app.delete('/announcements/:id', checkAuth, (req, res) => {
 });
 
 //
-// ==========================
 // 🎉 EVENTS
-// ==========================
 //
-
 app.get('/events', (req, res) => {
   res.json(readData().events);
 });
 
-app.post('/events', checkAuth, (req, res) => {
+app.post('/events', verifyToken, (req, res) => {
   const data = readData();
-  const { title, description, event_date, barangays } = req.body;
 
   const newEvent = {
     id: Date.now(),
-    title,
-    description,
-    event_date,
-    pinned: false,
-    barangays: barangays?.length ? barangays : ["All"]
+    title: req.body.title,
+    description: req.body.description,
+    event_date: req.body.event_date,
+    barangays: req.body.barangays || ["All"],
+    pinned: false
   };
 
   data.events.push(newEvent);
@@ -139,19 +129,18 @@ app.post('/events', checkAuth, (req, res) => {
   res.json(newEvent);
 });
 
-app.put('/events/:id', checkAuth, (req, res) => {
+app.put('/events/:id', verifyToken, (req, res) => {
   const data = readData();
-  const id = req.params.id;
 
   data.events = data.events.map(e =>
-    e.id == id ? { ...e, ...req.body, id: e.id } : e
+    e.id == req.params.id ? { ...e, ...req.body } : e
   );
 
   writeData(data);
   res.json({ message: "Updated" });
 });
 
-app.delete('/events/:id', checkAuth, (req, res) => {
+app.delete('/events/:id', verifyToken, (req, res) => {
   const data = readData();
 
   data.events = data.events.filter(
@@ -163,7 +152,7 @@ app.delete('/events/:id', checkAuth, (req, res) => {
 });
 
 //
-// 🚀 SERVER
+// 🚀 START
 //
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running"));

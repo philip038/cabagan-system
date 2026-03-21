@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 const API = "https://cabagan-backend.onrender.com";
 
@@ -12,34 +12,33 @@ const barangaysList = [
 
 function Events() {
   const [events, setEvents] = useState([]);
-  const [title, setTitle] = useState('');
-  const [desc, setDesc] = useState('');
-  const [date, setDate] = useState('');
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [date, setDate] = useState("");
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState([]);
 
-  const isAdmin = !!localStorage.getItem('token');
-
-  const authHeader = {
-    Authorization: localStorage.getItem('token')
-  };
+  const token = localStorage.getItem("token");
+  const isAdmin = !!token;
 
   useEffect(() => { fetchEvents(); }, []);
 
-  const fetchEvents = () => {
-    fetch(`${API}/events`)
-      .then(res => res.json())
-      .then(data => {
-        const sorted = data.sort((a, b) => (b.pinned === true) - (a.pinned === true));
-        setEvents(sorted);
-      });
+  const fetchEvents = async () => {
+    const res = await fetch(`${API}/events`);
+    const data = await res.json();
+
+    const safe = data.map(e => ({
+      ...e,
+      barangays: e.barangays || [],
+      pinned: e.pinned || false
+    }));
+
+    setEvents(safe.sort((a, b) => b.pinned - a.pinned));
   };
 
   const toggleSelect = (b) => {
     setSelected(prev =>
-      prev.includes(b)
-        ? prev.filter(x => x !== b)
-        : [...prev, b]
+      prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]
     );
   };
 
@@ -47,10 +46,10 @@ function Events() {
     if (!title || !desc || !date) return alert("Fill all fields");
 
     await fetch(`${API}/events`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        ...authHeader
+        "Content-Type": "application/json",
+        Authorization: token
       },
       body: JSON.stringify({
         title,
@@ -60,39 +59,29 @@ function Events() {
       })
     });
 
-    setTitle('');
-    setDesc('');
-    setDate('');
-    setSelected([]);
-    setAll(true);
+    setTitle(""); setDesc(""); setDate(""); setSelected([]); setAll(true);
     fetchEvents();
   };
 
   const deleteEvent = async (id) => {
     await fetch(`${API}/events/${id}`, {
-      method: 'DELETE',
-      headers: authHeader
+      method: "DELETE",
+      headers: { Authorization: token }
     });
     fetchEvents();
   };
 
   const togglePin = async (item) => {
-    const pinnedCount = events.filter(e => e.pinned).length;
-
-    if (!item.pinned && pinnedCount >= 10) {
-      return alert("Max 10 pinned events");
-    }
+    const count = events.filter(e => e.pinned).length;
+    if (!item.pinned && count >= 10) return alert("Max 10 pinned");
 
     await fetch(`${API}/events/${item.id}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        ...authHeader
+        "Content-Type": "application/json",
+        Authorization: token
       },
-      body: JSON.stringify({
-        ...item,
-        pinned: !item.pinned
-      })
+      body: JSON.stringify({ ...item, pinned: !item.pinned })
     });
 
     fetchEvents();
@@ -100,55 +89,44 @@ function Events() {
 
   return (
     <div style={page}>
-      <h1 style={titleStyle}>🎉 Events</h1>
+      <h1>🎉 Events</h1>
 
       {isAdmin && (
         <div style={card}>
-          <h3>Add Event</h3>
-
           <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
           <textarea style={input} placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} />
           <input type="date" style={input} value={date} onChange={e => setDate(e.target.value)} />
 
-          <label style={{ fontWeight: 'bold' }}>
+          <label>
             <input type="checkbox" checked={all} onChange={() => { setAll(!all); setSelected([]); }} />
-            🌐 All Barangays
+            All Barangays
           </label>
 
           {!all && (
             <div style={checkboxBox}>
-              {barangaysList.map((b, i) => (
-                <label key={i} style={checkboxItem}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(b)}
-                    onChange={() => toggleSelect(b)}
-                  />
+              {barangaysList.map(b => (
+                <label key={b}>
+                  <input type="checkbox" checked={selected.includes(b)} onChange={() => toggleSelect(b)} />
                   {b}
                 </label>
               ))}
             </div>
           )}
 
-          <button style={addBtn} onClick={addEvent}>+ Add Event</button>
+          <button style={btn} onClick={addEvent}>+ Add Event</button>
         </div>
       )}
 
-      {events.length === 0 && <p>No events available</p>}
-
       {events.map(e => (
-        <div key={e.id} style={{
-          ...card,
-          borderLeft: e.pinned ? "6px solid gold" : "none"
-        }}>
+        <div key={e.id} style={{ ...card, borderLeft: e.pinned ? "5px solid gold" : "" }}>
           <h3>{e.pinned && "📌"} {e.title}</h3>
           <p>{e.description}</p>
-          <small>{e.event_date} • {(e.barangays || ["All"]).join(', ')}</small>
+          <small>{e.event_date} • {Array.isArray(e.barangays) && e.barangays.length ? e.barangays.join(", ") : "All"}</small>
 
           {isAdmin && (
-            <div style={{ marginTop: 10 }}>
-              <button style={pinBtn} onClick={() => togglePin(e)}>📌</button>
-              <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>🗑</button>
+            <div>
+              <button onClick={() => togglePin(e)}>📌</button>
+              <button onClick={() => deleteEvent(e.id)}>🗑</button>
             </div>
           )}
         </div>
@@ -157,71 +135,10 @@ function Events() {
   );
 }
 
-/* STYLES */
-
-const page = {
-  padding: '20px',
-  background: '#f5f7fa',
-  minHeight: '100vh'
-};
-
-const titleStyle = {
-  marginBottom: '20px'
-};
-
-const card = {
-  background: 'white',
-  padding: '15px',
-  marginBottom: '15px',
-  borderRadius: '10px',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-};
-
-const input = {
-  width: '100%',
-  padding: '10px',
-  marginBottom: '10px',
-  borderRadius: '6px',
-  border: '1px solid #ccc'
-};
-
-const checkboxBox = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '10px',
-  marginTop: '10px'
-};
-
-const checkboxItem = {
-  width: '200px'
-};
-
-const addBtn = {
-  marginTop: '10px',
-  padding: '10px',
-  background: '#2c7be5',
-  color: 'white',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer'
-};
-
-const deleteBtn = {
-  background: '#e74c3c',
-  color: 'white',
-  border: 'none',
-  padding: '6px 10px',
-  marginLeft: '10px',
-  borderRadius: '6px',
-  cursor: 'pointer'
-};
-
-const pinBtn = {
-  background: '#f1c40f',
-  border: 'none',
-  padding: '6px 10px',
-  borderRadius: '6px',
-  cursor: 'pointer'
-};
+const page = { padding: 20, background: "#f5f7fa", minHeight: "100vh" };
+const card = { background: "#fff", padding: 15, margin: 10, borderRadius: 10 };
+const input = { width: "100%", marginBottom: 10 };
+const btn = { padding: 10 };
+const checkboxBox = { display: "flex", flexWrap: "wrap", gap: 10 };
 
 export default Events;
