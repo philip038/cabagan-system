@@ -278,8 +278,12 @@ const checkboxItem = {
 };
 
 const img = {
-  width: "100%",
-  borderRadius: 10,
+  background: "linear-gradient(135deg, #2b482c, #0be616)",
+  color: "#fff",
+  padding: "10px",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
   marginTop: 10
 };
 
