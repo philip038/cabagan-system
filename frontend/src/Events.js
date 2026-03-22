@@ -60,9 +60,7 @@ function Events() {
     try {
       const res = await fetch(`${API}/events`, {
         method: "POST",
-        headers: {
-          Authorization: token || ""
-        },
+        headers: { Authorization: token || "" },
         body: formData
       });
 
@@ -87,9 +85,7 @@ function Events() {
     try {
       const res = await fetch(`${API}/events/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: token || ""
-        }
+        headers: { Authorization: token || "" }
       });
 
       if (!res.ok) throw new Error("Delete failed");
@@ -172,7 +168,7 @@ function Events() {
 
           {e.image && (
             <img
-              src={`${API}/uploads/${e.image}`}
+              src={e.image}   // ✅ FIXED HERE
               alt=""
               style={img}
             />

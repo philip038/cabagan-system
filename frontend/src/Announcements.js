@@ -28,6 +28,8 @@ function Announcements() {
   const fetchData = async () => {
     try {
       const res = await fetch(`${API}/announcements`);
+      if (!res.ok) throw new Error("Fetch failed");
+
       const d = await res.json();
 
       setData(
@@ -66,8 +68,8 @@ function Announcements() {
 
       if (!res.ok) throw new Error("Add failed");
 
-      const newItem = await res.json();
-      setData(prev => [newItem, ...prev]);
+      // 🔥 Always refresh from backend (clean data)
+      await fetchData();
 
       setTitle("");
       setContent("");
@@ -89,7 +91,8 @@ function Announcements() {
 
       if (!res.ok) throw new Error("Delete failed");
 
-      setData(prev => prev.filter(a => a._id !== id && a.id !== id));
+      // 🔥 Refresh instead of manual filter (safer)
+      await fetchData();
     } catch (err) {
       alert("Delete failed");
       console.error(err);
@@ -112,7 +115,7 @@ function Announcements() {
 
       if (!res.ok) throw new Error("Pin failed");
 
-      fetchData();
+      await fetchData();
     } catch (err) {
       alert("Failed to update pin");
       console.error(err);
@@ -193,7 +196,7 @@ function Announcements() {
 
           {item.image && (
             <img
-              src={`${API}/uploads/${item.image}`}
+              src={item.image}
               alt=""
               style={img}
             />
@@ -233,6 +236,7 @@ function Announcements() {
 const page = { padding: 20, background: "#f1f8f5", minHeight: "100vh" };
 const titleStyle = { color: "#2e7d32" };
 const formCard = { background: "#ffffff", padding: 15, borderRadius: 12, marginBottom: 20 };
+
 const card = {
   background: "#ffffff",
   padding: 15,
