@@ -4,8 +4,14 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const path = require('path');
 const mongoose = require('mongoose');
+
+// 🔥 FIXED CLOUDINARY IMPORT (Node 24 safe)
+const cloudinary = require('cloudinary').v2;
+const cloudinaryStorage = require('multer-storage-cloudinary');
+
+const CloudinaryStorage =
+  cloudinaryStorage.CloudinaryStorage || cloudinaryStorage;
 
 const app = express();
 app.use(cors());
@@ -19,6 +25,27 @@ const SECRET = process.env.JWT_SECRET || "cabagan-secret-key";
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ MongoDB Error:", err));
+
+// ==========================
+// ☁️ CLOUDINARY CONFIG
+// ==========================
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+});
+
+// 🔥 FIXED STORAGE (COMPATIBLE)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => ({
+    folder: "cabagan",
+    format: file.mimetype.split('/')[1],
+    public_id: Date.now() + "-" + file.originalname
+  })
+});
+
+const upload = multer({ storage });
 
 // ==========================
 // 📦 SCHEMAS
@@ -42,25 +69,6 @@ const eventSchema = new mongoose.Schema({
 
 const Announcement = mongoose.model('Announcement', announcementSchema);
 const Event = mongoose.model('Event', eventSchema);
-
-// ==========================
-// 📁 IMAGE UPLOAD
-// ==========================
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = './uploads';
-    const fs = require('fs');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
-const upload = multer({ storage });
 
 // ==========================
 // 🔐 AUTH
@@ -101,20 +109,25 @@ app.get('/announcements', async (req, res) => {
 });
 
 app.post('/announcements', verifyToken, upload.single('image'), async (req, res) => {
-  const barangays = req.body.barangays
-    ? JSON.parse(req.body.barangays)
-    : ["All"];
+  try {
+    const barangays = req.body.barangays
+      ? JSON.parse(req.body.barangays)
+      : ["All"];
 
-  const newItem = new Announcement({
-    title: req.body.title,
-    content: req.body.content,
-    barangays,
-    image: req.file ? req.file.filename : null,
-    pinned: false
-  });
+    const newItem = new Announcement({
+      title: req.body.title,
+      content: req.body.content,
+      barangays,
+      image: req.file ? req.file.path : null,
+      pinned: false
+    });
 
-  await newItem.save();
-  res.json(newItem);
+    await newItem.save();
+    res.json(newItem);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating announcement" });
+  }
 });
 
 app.put('/announcements/:id', verifyToken, async (req, res) => {
@@ -136,21 +149,26 @@ app.get('/events', async (req, res) => {
 });
 
 app.post('/events', verifyToken, upload.single('image'), async (req, res) => {
-  const barangays = req.body.barangays
-    ? JSON.parse(req.body.barangays)
-    : ["All"];
+  try {
+    const barangays = req.body.barangays
+      ? JSON.parse(req.body.barangays)
+      : ["All"];
 
-  const newEvent = new Event({
-    title: req.body.title,
-    description: req.body.description,
-    event_date: req.body.event_date,
-    barangays,
-    image: req.file ? req.file.filename : null,
-    pinned: false
-  });
+    const newEvent = new Event({
+      title: req.body.title,
+      description: req.body.description,
+      event_date: req.body.event_date,
+      barangays,
+      image: req.file ? req.file.path : null,
+      pinned: false
+    });
 
-  await newEvent.save();
-  res.json(newEvent);
+    await newEvent.save();
+    res.json(newEvent);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating event" });
+  }
 });
 
 app.put('/events/:id', verifyToken, async (req, res) => {
