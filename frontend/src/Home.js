@@ -1,9 +1,16 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 
-const API = "https://cabagan-backend.onrender.com"; // change if needed
+const API = "https://cabagan-backend.onrender.com";
 
-const Home = () => {
+const barangaysList = [
+  "Aggub","Anao","Angancasilian","Balasig","Cansan","Casibarag Norte",
+  "Casibarag Sur","Catabayungan","Centro (Poblacion)","Cubag","Garita",
+  "Luquilu","Mabangug","Magassi","Masipi East","Masipi West (Magallones)",
+  "Ngarag","Pilig Abajo","Pilig Alto","San Antonio (Candanum)",
+  "San Bernardo","San Juan","Saui","Tallag","Ugad","Union"
+];
+
+function Home() {
   const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
   const [selectedBarangay, setSelectedBarangay] = useState("");
@@ -13,167 +20,123 @@ const Home = () => {
   }, []);
 
   const fetchData = async () => {
-    try {
-      const [annRes, eventRes] = await Promise.all([
-        axios.get(`${API}/announcements`),
-        axios.get(`${API}/events`)
-      ]);
+    const [aRes, eRes] = await Promise.all([
+      fetch(`${API}/announcements`),
+      fetch(`${API}/events`)
+    ]);
 
-      // ✅ FIX: Ensure barangays always array
-      setAnnouncements(
-        annRes.data.map(item => ({
-          ...item,
-          barangays: item.barangays || [],
-          pinned: item.pinned || false
-        }))
-      );
+    const aData = await aRes.json();
+    const eData = await eRes.json();
 
-      setEvents(
-        eventRes.data.map(item => ({
-          ...item,
-          barangays: item.barangays || [],
-          pinned: item.pinned || false
-        }))
-      );
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
+    setAnnouncements(
+      aData.map(a => ({
+        ...a,
+        barangays: a.barangays || [],
+        pinned: a.pinned || false
+      }))
+    );
+
+    setEvents(
+      eData.map(e => ({
+        ...e,
+        barangays: e.barangays || [],
+        pinned: e.pinned || false
+      }))
+    );
   };
 
-  // ✅ FILTER LOGIC
-  const filterByBarangay = (items) => {
+  // 🔥 FILTER LOGIC
+  const filterData = (items) => {
     if (!selectedBarangay) return items;
 
     return items.filter(item =>
       item.barangays.length === 0 ||
+      item.barangays.includes("All") ||
       item.barangays.includes(selectedBarangay)
     );
   };
 
-  // ✅ SORT PINNED FIRST
+  // 🔥 PIN FIRST
   const sortPinned = (items) => {
     return [...items].sort((a, b) => b.pinned - a.pinned);
   };
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>📊 Dashboard</h1>
+    <div style={page}>
+      <h1 style={title}>🌾 Cabagan LGU Dashboard</h1>
 
-      {/* FILTER */}
+      {/* 📍 FILTER */}
       <select
-        style={styles.select}
         value={selectedBarangay}
         onChange={(e) => setSelectedBarangay(e.target.value)}
+        style={select}
       >
-        <option value="">All Barangays</option>
-        <option>Aggub</option>
-        <option>Anao</option>
-        <option>Angancasilian</option>
-        <option>Balasig</option>
-        <option>Cansan</option>
-        <option>Centro (Poblacion)</option>
-        <option>Cubag</option>
-        <option>Garita</option>
-        <option>Luquilu</option>
-        <option>Mabangug</option>
-        <option>Magassi</option>
-        <option>Masipi East</option>
-        <option>Masipi West (Magallones)</option>
-        <option>Ngarag</option>
-        <option>Pilig Abajo</option>
-        <option>Pilig Alto</option>
-        <option>San Antonio (Candanum)</option>
-        <option>San Bernardo</option>
-        <option>San Juan</option>
-        <option>Saui</option>
-        <option>Tallag</option>
-        <option>Ugad</option>
-        <option>Union</option>
-        {/* add more if needed */}
+        <option value="">🌐 All Barangays</option>
+        {barangaysList.map(b => (
+          <option key={b}>{b}</option>
+        ))}
       </select>
 
-      {/* ANNOUNCEMENTS */}
-      <h2 style={styles.section}>📢 Announcements</h2>
+      {/* 📢 ANNOUNCEMENTS */}
+      <h2 style={section}>📢 Announcements</h2>
+      {sortPinned(filterData(announcements)).map(a => (
+        <div key={a.id} style={card}>
+          <h3>{a.pinned && "📌 "} {a.title}</h3>
 
-      {sortPinned(filterByBarangay(announcements)).map(item => (
-        <div key={item._id} style={styles.card}>
-          {item.pinned && <span style={styles.pin}>📌</span>}
-          <h3>{item.title}</h3>
-          <p>{item.content}</p>
+          {a.image && (
+            <img src={`${API}/uploads/${a.image}`} alt="" style={img} />
+          )}
 
-          <small style={styles.tag}>
-            📍{" "}
-            {Array.isArray(item.barangays) && item.barangays.length > 0
-              ? item.barangays.join(", ")
-              : "All"}
+          <p>{a.content}</p>
+
+          <small>
+            📍 {a.barangays.length ? a.barangays.join(", ") : "All"}
           </small>
         </div>
       ))}
 
-      {/* EVENTS */}
-      <h2 style={styles.section}>🎉 Events</h2>
+      {/* 🎉 EVENTS */}
+      <h2 style={section}>🎉 Events</h2>
+      {sortPinned(filterData(events)).map(e => (
+        <div key={e.id} style={card}>
+          <h3>{e.pinned && "📌 "} {e.title}</h3>
 
-      {sortPinned(filterByBarangay(events)).map(item => (
-        <div key={item._id} style={styles.card}>
-          {item.pinned && <span style={styles.pin}>📌</span>}
-          <h3>{item.title}</h3>
-          <p>{item.description}</p>
+          {e.image && (
+            <img src={`${API}/uploads/${e.image}`} alt="" style={img} />
+          )}
 
-          <small style={styles.tag}>
-            📅 {item.date}
-          </small>
+          <p>{e.description}</p>
 
-          <br />
-
-          <small style={styles.tag}>
-            📍{" "}
-            {Array.isArray(item.barangays) && item.barangays.length > 0
-              ? item.barangays.join(", ")
-              : "All"}
+          <small>
+            {e.event_date} • {e.barangays.length ? e.barangays.join(", ") : "All"}
           </small>
         </div>
       ))}
     </div>
   );
+}
+
+/* 🌾 STYLES */
+const page = { padding: 20, background: "#f1f8f5", minHeight: "100vh" };
+const title = { color: "#2e7d32" };
+const section = { marginTop: 30 };
+const select = {
+  padding: 10,
+  borderRadius: 8,
+  marginBottom: 20,
+  width: "100%"
+};
+const card = {
+  background: "#fff",
+  padding: 15,
+  marginBottom: 15,
+  borderRadius: 12,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+};
+const img = {
+  width: "100%",
+  borderRadius: 10,
+  margin: "10px 0"
 };
 
 export default Home;
-
-const styles = {
-  container: {
-    padding: "20px",
-    maxWidth: "900px",
-    margin: "auto"
-  },
-  title: {
-    fontSize: "28px",
-    marginBottom: "20px"
-  },
-  section: {
-    marginTop: "30px",
-    marginBottom: "10px"
-  },
-  select: {
-    padding: "10px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    width: "100%"
-  },
-  card: {
-    background: "#fff",
-    padding: "15px",
-    borderRadius: "12px",
-    marginBottom: "15px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-    position: "relative"
-  },
-  pin: {
-    position: "absolute",
-    top: "10px",
-    right: "10px",
-    fontSize: "18px"
-  },
-  tag: {
-    color: "#555"
-  }
-};

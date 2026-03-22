@@ -44,6 +44,8 @@ function Events() {
   };
 
   const addEvent = async () => {
+    if (!title || !desc || !date) return alert("Complete fields");
+
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", desc);
@@ -58,8 +60,8 @@ function Events() {
     });
 
     const newEvent = await res.json();
-
     setEvents(prev => [newEvent, ...prev]);
+
     setTitle(""); setDesc(""); setDate(""); setImage(null);
     setSelected([]); setAll(true);
   };
@@ -102,7 +104,7 @@ function Events() {
 
           <label>
             <input type="checkbox" checked={all} onChange={() => { setAll(!all); setSelected([]); }} />
-            All Barangays
+            🌐 All Barangays
           </label>
 
           {!all && (
@@ -121,24 +123,23 @@ function Events() {
       )}
 
       {events.map(e => (
-        <div key={e.id} style={{ ...card, borderLeft: e.pinned ? "6px solid #f9a825" : "" }}>
+        <div key={e.id} style={card}>
           <h3>{e.pinned && "📌"} {e.title}</h3>
 
           {e.image && (
-            <img
-              src={`${API}/uploads/${e.image}`}
-              alt=""
-              style={img}
-            />
+            <img src={`${API}/uploads/${e.image}`} alt="" style={img} />
           )}
 
           <p>{e.description}</p>
-          <small>{e.event_date} • {e.barangays.join(", ") || "All"}</small>
+
+          <small>
+            {e.event_date} • {e.barangays.length ? e.barangays.join(", ") : "All"}
+          </small>
 
           {isAdmin && (
-            <div>
-              <button onClick={() => togglePin(e)}>📌</button>
-              <button onClick={() => deleteEvent(e.id)}>🗑</button>
+            <div style={{ marginTop: 10 }}>
+              <button style={pinBtn} onClick={() => togglePin(e)}>📌 Pin</button>
+              <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>🗑 Delete</button>
             </div>
           )}
         </div>
@@ -148,59 +149,23 @@ function Events() {
 }
 
 /* 🌾 STYLES */
-
-const page = {
-  padding: 20,
-  background: "#f1f8f5",
-  minHeight: "100vh"
-};
-
-const titleStyle = {
-  color: "#2e7d32"
-};
-
-const formCard = {
-  background: "#ffffff",
-  padding: 15,
-  borderRadius: 12,
-  marginBottom: 20
-};
-
-const card = {
-  background: "#ffffff",
-  padding: 15,
-  borderRadius: 12,
-  marginBottom: 15,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-};
-
-const input = {
-  width: "100%",
-  padding: 10,
-  marginBottom: 10,
-  borderRadius: 8,
-  border: "1px solid #ccc"
-};
+const page = { padding: 20, background: "#f1f8f5", minHeight: "100vh" };
+const titleStyle = { color: "#2e7d32" };
+const formCard = { background: "#fff", padding: 15, borderRadius: 12, marginBottom: 20 };
+const card = { background: "#fff", padding: 15, borderRadius: 12, marginBottom: 15 };
+const input = { width: "100%", padding: 10, marginBottom: 10 };
+const checkboxBox = { display: "flex", flexWrap: "wrap", gap: 10 };
+const img = { width: "100%", borderRadius: 10, marginTop: 10 };
 
 const btn = {
-  background: "#2e7d32",
-  color: "white",
+  background: "linear-gradient(135deg, #2e7d32, #66bb6a)",
+  color: "#fff",
   padding: 10,
   border: "none",
-  borderRadius: 8,
-  cursor: "pointer"
+  borderRadius: 8
 };
 
-const checkboxBox = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 10
-};
-
-const img = {
-  width: "100%",
-  borderRadius: 10,
-  marginTop: 10
-};
+const pinBtn = { background: "#fff8e1", padding: 6, borderRadius: 6 };
+const deleteBtn = { background: "#ffebee", padding: 6, borderRadius: 6 };
 
 export default Events;

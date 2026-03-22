@@ -21,7 +21,9 @@ function Announcements() {
   const token = localStorage.getItem("token");
   const isAdmin = !!token;
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     const res = await fetch(`${API}/announcements`);
@@ -60,8 +62,12 @@ function Announcements() {
     const newItem = await res.json();
 
     setData(prev => [newItem, ...prev]);
-    setTitle(""); setContent(""); setImage(null);
-    setSelected([]); setAll(true);
+
+    setTitle("");
+    setContent("");
+    setImage(null);
+    setSelected([]);
+    setAll(true);
   };
 
   const del = async (id) => {
@@ -93,8 +99,11 @@ function Announcements() {
     <div style={page}>
       <h1 style={titleStyle}>🌿 Announcements</h1>
 
+      {/* ADMIN FORM */}
       {isAdmin && (
         <div style={formCard}>
+          <h3>Add Announcement</h3>
+
           <input
             style={input}
             placeholder="Title"
@@ -109,9 +118,12 @@ function Announcements() {
             onChange={e => setContent(e.target.value)}
           />
 
-          <input type="file" onChange={e => setImage(e.target.files[0])} />
+          <input
+            type="file"
+            onChange={e => setImage(e.target.files[0])}
+          />
 
-          <label>
+          <label style={{ fontWeight: "bold" }}>
             <input
               type="checkbox"
               checked={all}
@@ -126,7 +138,7 @@ function Announcements() {
           {!all && (
             <div style={checkboxBox}>
               {barangaysList.map(b => (
-                <label key={b}>
+                <label key={b} style={checkboxItem}>
                   <input
                     type="checkbox"
                     checked={selected.includes(b)}
@@ -144,6 +156,7 @@ function Announcements() {
         </div>
       )}
 
+      {/* DISPLAY */}
       {data.map(item => (
         <div
           key={item.id}
@@ -154,6 +167,7 @@ function Announcements() {
         >
           <h3>{item.pinned && "📌"} {item.title}</h3>
 
+          {/* IMAGE */}
           {item.image && (
             <img
               src={`${API}/uploads/${item.image}`}
@@ -173,8 +187,13 @@ function Announcements() {
 
           {isAdmin && (
             <div style={{ marginTop: 10 }}>
-              <button onClick={() => pin(item)}>📌</button>
-              <button onClick={() => del(item.id)}>🗑</button>
+              <button style={pinBtn} onClick={() => pin(item)}>
+                📌 Pin
+              </button>
+
+              <button style={deleteBtn} onClick={() => del(item.id)}>
+                🗑 Delete
+              </button>
             </div>
           )}
         </div>
@@ -219,18 +238,43 @@ const input = {
 };
 
 const btn = {
-  background: "#2e7d32",
-  color: "white",
-  padding: 10,
+  background: "linear-gradient(135deg, #2e7d32, #66bb6a)",
+  color: "#fff",
+  padding: "10px",
   border: "none",
   borderRadius: 8,
+  cursor: "pointer",
+  marginTop: 10
+};
+
+const pinBtn = {
+  background: "#fff8e1",
+  color: "#f9a825",
+  padding: "6px 10px",
+  borderRadius: 6,
+  marginRight: 8,
+  border: "none",
+  cursor: "pointer"
+};
+
+const deleteBtn = {
+  background: "#ffebee",
+  color: "#c62828",
+  padding: "6px 10px",
+  borderRadius: 6,
+  border: "none",
   cursor: "pointer"
 };
 
 const checkboxBox = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 10
+  gap: 10,
+  marginTop: 10
+};
+
+const checkboxItem = {
+  width: "200px"
 };
 
 const img = {
