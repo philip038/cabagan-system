@@ -25,16 +25,20 @@ function Events() {
   useEffect(() => { fetchEvents(); }, []);
 
   const fetchEvents = async () => {
-    const res = await fetch(`${API}/events`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API}/events`);
+      const data = await res.json();
 
-    setEvents(
-      data.map(e => ({
-        ...e,
-        barangays: e.barangays || [],
-        pinned: e.pinned || false
-      })).sort((a, b) => b.pinned - a.pinned)
-    );
+      setEvents(
+        data.map(e => ({
+          ...e,
+          barangays: e.barangays || [],
+          pinned: e.pinned || false
+        })).sort((a, b) => b.pinned - a.pinned)
+      );
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
 
   const toggleSelect = (b) => {
@@ -50,45 +54,74 @@ function Events() {
     formData.append("title", title);
     formData.append("description", desc);
     formData.append("event_date", date);
-    formData.append("image", image);
+    if (image) formData.append("image", image);
     formData.append("barangays", JSON.stringify(all ? ["All"] : selected));
 
-    const res = await fetch(`${API}/events`, {
-      method: "POST",
-      headers: { Authorization: token },
-      body: formData
-    });
+    try {
+      const res = await fetch(`${API}/events`, {
+        method: "POST",
+        headers: {
+          Authorization: token || ""
+        },
+        body: formData
+      });
 
-    const newEvent = await res.json();
-    setEvents(prev => [newEvent, ...prev]);
+      if (!res.ok) throw new Error("Add failed");
 
-    setTitle(""); setDesc(""); setDate(""); setImage(null);
-    setSelected([]); setAll(true);
+      const newEvent = await res.json();
+      setEvents(prev => [newEvent, ...prev]);
+
+      setTitle("");
+      setDesc("");
+      setDate("");
+      setImage(null);
+      setSelected([]);
+      setAll(true);
+    } catch (err) {
+      alert("Failed to add event");
+      console.error(err);
+    }
   };
 
   const deleteEvent = async (id) => {
-    await fetch(`${API}/events/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: token }
-    });
+    try {
+      const res = await fetch(`${API}/events/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: token || ""
+        }
+      });
 
-    setEvents(prev => prev.filter(e => e.id !== id));
+      if (!res.ok) throw new Error("Delete failed");
+
+      setEvents(prev => prev.filter(e => e._id !== id && e.id !== id));
+    } catch (err) {
+      alert("Delete failed");
+      console.error(err);
+    }
   };
 
   const togglePin = async (item) => {
     const count = events.filter(e => e.pinned).length;
     if (!item.pinned && count >= 10) return alert("Max 10 pinned");
 
-    await fetch(`${API}/events/${item.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token
-      },
-      body: JSON.stringify({ ...item, pinned: !item.pinned })
-    });
+    try {
+      const res = await fetch(`${API}/events/${item._id || item.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token || ""
+        },
+        body: JSON.stringify({ ...item, pinned: !item.pinned })
+      });
 
-    fetchEvents();
+      if (!res.ok) throw new Error("Pin failed");
+
+      fetchEvents();
+    } catch (err) {
+      alert("Failed to update pin");
+      console.error(err);
+    }
   };
 
   return (
@@ -103,7 +136,14 @@ function Events() {
           <input type="file" onChange={e => setImage(e.target.files[0])} />
 
           <label>
-            <input type="checkbox" checked={all} onChange={() => { setAll(!all); setSelected([]); }} />
+            <input
+              type="checkbox"
+              checked={all}
+              onChange={() => {
+                setAll(!all);
+                setSelected([]);
+              }}
+            />
             🌐 All Barangays
           </label>
 
@@ -111,7 +151,11 @@ function Events() {
             <div style={checkboxBox}>
               {barangaysList.map(b => (
                 <label key={b}>
-                  <input type="checkbox" checked={selected.includes(b)} onChange={() => toggleSelect(b)} />
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(b)}
+                    onChange={() => toggleSelect(b)}
+                  />
                   {b}
                 </label>
               ))}
@@ -123,11 +167,15 @@ function Events() {
       )}
 
       {events.map(e => (
-        <div key={e.id} style={card}>
+        <div key={e._id || e.id} style={card}>
           <h3>{e.pinned && "📌"} {e.title}</h3>
 
           {e.image && (
-            <img src={`${API}/uploads/${e.image}`} alt="" style={img} />
+            <img
+              src={`${API}/uploads/${e.image}`}
+              alt=""
+              style={img}
+            />
           )}
 
           <p>{e.description}</p>
@@ -139,7 +187,7 @@ function Events() {
           {isAdmin && (
             <div style={{ marginTop: 10 }}>
               <button style={pinBtn} onClick={() => togglePin(e)}>📌 Pin</button>
-              <button style={deleteBtn} onClick={() => deleteEvent(e.id)}>🗑 Delete</button>
+              <button style={deleteBtn} onClick={() => deleteEvent(e._id || e.id)}>🗑 Delete</button>
             </div>
           )}
         </div>
@@ -155,25 +203,28 @@ const formCard = { background: "#fff", padding: 15, borderRadius: 12, marginBott
 const card = { background: "#fff", padding: 15, borderRadius: 12, marginBottom: 15 };
 const input = { width: "100%", padding: 10, marginBottom: 10 };
 const checkboxBox = { display: "flex", flexWrap: "wrap", gap: 10 };
-const img = { 
-  background: "linear-gradient(135deg, #2b482c, #0be616)",
-  color: "#fff",
-  padding: "10px",
-  border: "none",
-  borderRadius: 8,
-  cursor: "pointer",
-  marginTop: 10 
-};
+const img = { width: "100%", borderRadius: 10, marginTop: 10 };
 
 const btn = {
   background: "linear-gradient(135deg, #2e7d32, #66bb6a)",
   color: "#fff",
   padding: 10,
   border: "none",
-  borderRadius: 8
+  borderRadius: 8,
+  cursor: "pointer"
 };
 
-const pinBtn = { background: "#fff8e1", padding: 6, borderRadius: 6 };
-const deleteBtn = { background: "#ffebee", padding: 6, borderRadius: 6 };
+const pinBtn = {
+  background: "#fff8e1",
+  padding: 6,
+  borderRadius: 6,
+  marginRight: 5
+};
+
+const deleteBtn = {
+  background: "#ffebee",
+  padding: 6,
+  borderRadius: 6
+};
 
 export default Events;

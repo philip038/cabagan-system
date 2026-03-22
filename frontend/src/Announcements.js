@@ -26,16 +26,20 @@ function Announcements() {
   }, []);
 
   const fetchData = async () => {
-    const res = await fetch(`${API}/announcements`);
-    const d = await res.json();
+    try {
+      const res = await fetch(`${API}/announcements`);
+      const d = await res.json();
 
-    setData(
-      d.map(a => ({
-        ...a,
-        barangays: a.barangays || [],
-        pinned: a.pinned || false
-      })).sort((a, b) => b.pinned - a.pinned)
-    );
+      setData(
+        d.map(a => ({
+          ...a,
+          barangays: a.barangays || [],
+          pinned: a.pinned || false
+        })).sort((a, b) => b.pinned - a.pinned)
+      );
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
 
   const toggleSelect = (b) => {
@@ -50,49 +54,69 @@ function Announcements() {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("content", content);
-    formData.append("image", image);
+    if (image) formData.append("image", image);
     formData.append("barangays", JSON.stringify(all ? ["All"] : selected));
 
-    const res = await fetch(`${API}/announcements`, {
-      method: "POST",
-      headers: { Authorization: token },
-      body: formData
-    });
+    try {
+      const res = await fetch(`${API}/announcements`, {
+        method: "POST",
+        headers: { Authorization: token || "" },
+        body: formData
+      });
 
-    const newItem = await res.json();
+      if (!res.ok) throw new Error("Add failed");
 
-    setData(prev => [newItem, ...prev]);
+      const newItem = await res.json();
+      setData(prev => [newItem, ...prev]);
 
-    setTitle("");
-    setContent("");
-    setImage(null);
-    setSelected([]);
-    setAll(true);
+      setTitle("");
+      setContent("");
+      setImage(null);
+      setSelected([]);
+      setAll(true);
+    } catch (err) {
+      alert("Failed to add announcement");
+      console.error(err);
+    }
   };
 
   const del = async (id) => {
-    await fetch(`${API}/announcements/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: token }
-    });
+    try {
+      const res = await fetch(`${API}/announcements/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: token || "" }
+      });
 
-    setData(prev => prev.filter(a => a.id !== id));
+      if (!res.ok) throw new Error("Delete failed");
+
+      setData(prev => prev.filter(a => a._id !== id && a.id !== id));
+    } catch (err) {
+      alert("Delete failed");
+      console.error(err);
+    }
   };
 
   const pin = async (item) => {
     const count = data.filter(a => a.pinned).length;
     if (!item.pinned && count >= 10) return alert("Max 10 pinned");
 
-    await fetch(`${API}/announcements/${item.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token
-      },
-      body: JSON.stringify({ ...item, pinned: !item.pinned })
-    });
+    try {
+      const res = await fetch(`${API}/announcements/${item._id || item.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token || ""
+        },
+        body: JSON.stringify({ ...item, pinned: !item.pinned })
+      });
 
-    fetchData();
+      if (!res.ok) throw new Error("Pin failed");
+
+      fetchData();
+    } catch (err) {
+      alert("Failed to update pin");
+      console.error(err);
+    }
   };
 
   return (
@@ -159,7 +183,7 @@ function Announcements() {
       {/* DISPLAY */}
       {data.map(item => (
         <div
-          key={item.id}
+          key={item._id || item.id}
           style={{
             ...card,
             borderLeft: item.pinned ? "6px solid #f9a825" : ""
@@ -167,7 +191,6 @@ function Announcements() {
         >
           <h3>{item.pinned && "📌"} {item.title}</h3>
 
-          {/* IMAGE */}
           {item.image && (
             <img
               src={`${API}/uploads/${item.image}`}
@@ -191,7 +214,10 @@ function Announcements() {
                 📌 Pin
               </button>
 
-              <button style={deleteBtn} onClick={() => del(item.id)}>
+              <button
+                style={deleteBtn}
+                onClick={() => del(item._id || item.id)}
+              >
                 🗑 Delete
               </button>
             </div>
@@ -204,23 +230,9 @@ function Announcements() {
 
 /* 🌾 STYLES */
 
-const page = {
-  padding: 20,
-  background: "#f1f8f5",
-  minHeight: "100vh"
-};
-
-const titleStyle = {
-  color: "#2e7d32"
-};
-
-const formCard = {
-  background: "#ffffff",
-  padding: 15,
-  borderRadius: 12,
-  marginBottom: 20
-};
-
+const page = { padding: 20, background: "#f1f8f5", minHeight: "100vh" };
+const titleStyle = { color: "#2e7d32" };
+const formCard = { background: "#ffffff", padding: 15, borderRadius: 12, marginBottom: 20 };
 const card = {
   background: "#ffffff",
   padding: 15,
@@ -273,17 +285,11 @@ const checkboxBox = {
   marginTop: 10
 };
 
-const checkboxItem = {
-  width: "200px"
-};
+const checkboxItem = { width: "200px" };
 
 const img = {
-  background: "linear-gradient(135deg, #2b482c, #0be616)",
-  color: "#fff",
-  padding: "10px",
-  border: "none",
-  borderRadius: 8,
-  cursor: "pointer",
+  width: "100%",
+  borderRadius: 10,
   marginTop: 10
 };
 
