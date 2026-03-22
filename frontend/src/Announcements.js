@@ -14,6 +14,7 @@ function Announcements() {
   const [data, setData] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [image, setImage] = useState(null);
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState([]);
 
@@ -26,13 +27,13 @@ function Announcements() {
     const res = await fetch(`${API}/announcements`);
     const d = await res.json();
 
-    const safe = d.map(a => ({
-      ...a,
-      barangays: a.barangays || [],
-      pinned: a.pinned || false
-    }));
-
-    setData(safe.sort((a, b) => b.pinned - a.pinned));
+    setData(
+      d.map(a => ({
+        ...a,
+        barangays: a.barangays || [],
+        pinned: a.pinned || false
+      })).sort((a, b) => b.pinned - a.pinned)
+    );
   };
 
   const toggleSelect = (b) => {
@@ -44,25 +45,23 @@ function Announcements() {
   const add = async () => {
     if (!title || !content) return alert("Fill all fields");
 
-    await fetch(`${API}/announcements`, {
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", content);
+    formData.append("image", image);
+    formData.append("barangays", JSON.stringify(all ? ["All"] : selected));
+
+    const res = await fetch(`${API}/announcements`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token
-      },
-      body: JSON.stringify({
-        title,
-        content,
-        barangays: all ? ["All"] : selected
-      })
+      headers: { Authorization: token },
+      body: formData
     });
 
-    setTitle("");
-    setContent("");
-    setSelected([]);
-    setAll(true);
+    const newItem = await res.json();
 
-    fetchData();
+    setData(prev => [newItem, ...prev]);
+    setTitle(""); setContent(""); setImage(null);
+    setSelected([]); setAll(true);
   };
 
   const del = async (id) => {
@@ -70,7 +69,8 @@ function Announcements() {
       method: "DELETE",
       headers: { Authorization: token }
     });
-    fetchData();
+
+    setData(prev => prev.filter(a => a.id !== id));
   };
 
   const pin = async (item) => {
@@ -91,12 +91,10 @@ function Announcements() {
 
   return (
     <div style={page}>
-      <h1>📢 Announcements</h1>
+      <h1 style={titleStyle}>🌿 Announcements</h1>
 
       {isAdmin && (
-        <div style={card}>
-          <h3>Add Announcement</h3>
-
+        <div style={formCard}>
           <input
             style={input}
             placeholder="Title"
@@ -111,7 +109,9 @@ function Announcements() {
             onChange={e => setContent(e.target.value)}
           />
 
-          <label style={{ fontWeight: "bold" }}>
+          <input type="file" onChange={e => setImage(e.target.files[0])} />
+
+          <label>
             <input
               type="checkbox"
               checked={all}
@@ -126,7 +126,7 @@ function Announcements() {
           {!all && (
             <div style={checkboxBox}>
               {barangaysList.map(b => (
-                <label key={b} style={checkboxItem}>
+                <label key={b}>
                   <input
                     type="checkbox"
                     checked={selected.includes(b)}
@@ -149,10 +149,19 @@ function Announcements() {
           key={item.id}
           style={{
             ...card,
-            borderLeft: item.pinned ? "6px solid gold" : ""
+            borderLeft: item.pinned ? "6px solid #f9a825" : ""
           }}
         >
           <h3>{item.pinned && "📌"} {item.title}</h3>
+
+          {item.image && (
+            <img
+              src={`${API}/uploads/${item.image}`}
+              alt=""
+              style={img}
+            />
+          )}
+
           <p>{item.content}</p>
 
           <small>
@@ -174,19 +183,30 @@ function Announcements() {
   );
 }
 
-/* STYLES */
+/* 🌾 STYLES */
 
 const page = {
   padding: 20,
-  background: "#f5f7fa",
+  background: "#f1f8f5",
   minHeight: "100vh"
 };
 
-const card = {
-  background: "#fff",
+const titleStyle = {
+  color: "#2e7d32"
+};
+
+const formCard = {
+  background: "#ffffff",
   padding: 15,
+  borderRadius: 12,
+  marginBottom: 20
+};
+
+const card = {
+  background: "#ffffff",
+  padding: 15,
+  borderRadius: 12,
   marginBottom: 15,
-  borderRadius: 10,
   boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
 };
 
@@ -194,29 +214,29 @@ const input = {
   width: "100%",
   padding: 10,
   marginBottom: 10,
-  borderRadius: 6,
+  borderRadius: 8,
   border: "1px solid #ccc"
 };
 
 const btn = {
-  marginTop: 10,
+  background: "#2e7d32",
+  color: "white",
   padding: 10,
-  background: "#2c7be5",
-  color: "#fff",
   border: "none",
-  borderRadius: 6,
+  borderRadius: 8,
   cursor: "pointer"
 };
 
 const checkboxBox = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 10,
-  marginTop: 10
+  gap: 10
 };
 
-const checkboxItem = {
-  width: "200px"
+const img = {
+  width: "100%",
+  borderRadius: 10,
+  marginTop: 10
 };
 
 export default Announcements;

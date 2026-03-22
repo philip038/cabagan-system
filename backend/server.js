@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -10,12 +12,29 @@ app.use(express.json());
 const DATA_FILE = './data.json';
 const SECRET = "cabagan-secret-key";
 
-// 👤 ADMIN CREDENTIAL (change later)
+// 📁 Serve uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 📦 Multer setup
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = './uploads';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage });
+
+// 👤 Admin credentials
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
 
 //
-// 📂 HELPERS
+// 📂 Helpers
 //
 const readData = () => {
   if (!fs.existsSync(DATA_FILE)) {
@@ -29,7 +48,7 @@ const writeData = (data) => {
 };
 
 //
-// 🔐 LOGIN
+// 🔐 Login
 //
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -43,7 +62,7 @@ app.post('/login', (req, res) => {
 });
 
 //
-// 🔐 VERIFY TOKEN
+// 🔐 Middleware
 //
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization;
@@ -59,20 +78,28 @@ const verifyToken = (req, res, next) => {
 };
 
 //
+// ==========================
 // 📢 ANNOUNCEMENTS
+// ==========================
 //
+
 app.get('/announcements', (req, res) => {
   res.json(readData().announcements);
 });
 
-app.post('/announcements', verifyToken, (req, res) => {
+app.post('/announcements', verifyToken, upload.single('image'), (req, res) => {
   const data = readData();
+
+  const barangays = req.body.barangays
+    ? JSON.parse(req.body.barangays)
+    : ["All"];
 
   const newItem = {
     id: Date.now(),
     title: req.body.title,
     content: req.body.content,
-    barangays: req.body.barangays || ["All"],
+    barangays,
+    image: req.file ? req.file.filename : null,
     pinned: false
   };
 
@@ -105,21 +132,29 @@ app.delete('/announcements/:id', verifyToken, (req, res) => {
 });
 
 //
+// ==========================
 // 🎉 EVENTS
+// ==========================
 //
+
 app.get('/events', (req, res) => {
   res.json(readData().events);
 });
 
-app.post('/events', verifyToken, (req, res) => {
+app.post('/events', verifyToken, upload.single('image'), (req, res) => {
   const data = readData();
+
+  const barangays = req.body.barangays
+    ? JSON.parse(req.body.barangays)
+    : ["All"];
 
   const newEvent = {
     id: Date.now(),
     title: req.body.title,
     description: req.body.description,
     event_date: req.body.event_date,
-    barangays: req.body.barangays || ["All"],
+    barangays,
+    image: req.file ? req.file.filename : null,
     pinned: false
   };
 
@@ -152,7 +187,7 @@ app.delete('/events/:id', verifyToken, (req, res) => {
 });
 
 //
-// 🚀 START
+// 🚀 Start Server
 //
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running"));

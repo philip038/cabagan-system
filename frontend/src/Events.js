@@ -15,6 +15,7 @@ function Events() {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [date, setDate] = useState("");
+  const [image, setImage] = useState(null);
   const [all, setAll] = useState(true);
   const [selected, setSelected] = useState([]);
 
@@ -27,13 +28,13 @@ function Events() {
     const res = await fetch(`${API}/events`);
     const data = await res.json();
 
-    const safe = data.map(e => ({
-      ...e,
-      barangays: e.barangays || [],
-      pinned: e.pinned || false
-    }));
-
-    setEvents(safe.sort((a, b) => b.pinned - a.pinned));
+    setEvents(
+      data.map(e => ({
+        ...e,
+        barangays: e.barangays || [],
+        pinned: e.pinned || false
+      })).sort((a, b) => b.pinned - a.pinned)
+    );
   };
 
   const toggleSelect = (b) => {
@@ -43,24 +44,24 @@ function Events() {
   };
 
   const addEvent = async () => {
-    if (!title || !desc || !date) return alert("Fill all fields");
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", desc);
+    formData.append("event_date", date);
+    formData.append("image", image);
+    formData.append("barangays", JSON.stringify(all ? ["All"] : selected));
 
-    await fetch(`${API}/events`, {
+    const res = await fetch(`${API}/events`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token
-      },
-      body: JSON.stringify({
-        title,
-        description: desc,
-        event_date: date,
-        barangays: all ? ["All"] : selected
-      })
+      headers: { Authorization: token },
+      body: formData
     });
 
-    setTitle(""); setDesc(""); setDate(""); setSelected([]); setAll(true);
-    fetchEvents();
+    const newEvent = await res.json();
+
+    setEvents(prev => [newEvent, ...prev]);
+    setTitle(""); setDesc(""); setDate(""); setImage(null);
+    setSelected([]); setAll(true);
   };
 
   const deleteEvent = async (id) => {
@@ -68,7 +69,8 @@ function Events() {
       method: "DELETE",
       headers: { Authorization: token }
     });
-    fetchEvents();
+
+    setEvents(prev => prev.filter(e => e.id !== id));
   };
 
   const togglePin = async (item) => {
@@ -89,13 +91,14 @@ function Events() {
 
   return (
     <div style={page}>
-      <h1>🎉 Events</h1>
+      <h1 style={titleStyle}>🌾 Events</h1>
 
       {isAdmin && (
-        <div style={card}>
+        <div style={formCard}>
           <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
           <textarea style={input} placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} />
           <input type="date" style={input} value={date} onChange={e => setDate(e.target.value)} />
+          <input type="file" onChange={e => setImage(e.target.files[0])} />
 
           <label>
             <input type="checkbox" checked={all} onChange={() => { setAll(!all); setSelected([]); }} />
@@ -118,10 +121,19 @@ function Events() {
       )}
 
       {events.map(e => (
-        <div key={e.id} style={{ ...card, borderLeft: e.pinned ? "5px solid gold" : "" }}>
+        <div key={e.id} style={{ ...card, borderLeft: e.pinned ? "6px solid #f9a825" : "" }}>
           <h3>{e.pinned && "📌"} {e.title}</h3>
+
+          {e.image && (
+            <img
+              src={`${API}/uploads/${e.image}`}
+              alt=""
+              style={img}
+            />
+          )}
+
           <p>{e.description}</p>
-          <small>{e.event_date} • {Array.isArray(e.barangays) && e.barangays.length ? e.barangays.join(", ") : "All"}</small>
+          <small>{e.event_date} • {e.barangays.join(", ") || "All"}</small>
 
           {isAdmin && (
             <div>
@@ -135,10 +147,60 @@ function Events() {
   );
 }
 
-const page = { padding: 20, background: "#f5f7fa", minHeight: "100vh" };
-const card = { background: "#fff", padding: 15, margin: 10, borderRadius: 10 };
-const input = { width: "100%", marginBottom: 10 };
-const btn = { padding: 10 };
-const checkboxBox = { display: "flex", flexWrap: "wrap", gap: 10 };
+/* 🌾 STYLES */
+
+const page = {
+  padding: 20,
+  background: "#f1f8f5",
+  minHeight: "100vh"
+};
+
+const titleStyle = {
+  color: "#2e7d32"
+};
+
+const formCard = {
+  background: "#ffffff",
+  padding: 15,
+  borderRadius: 12,
+  marginBottom: 20
+};
+
+const card = {
+  background: "#ffffff",
+  padding: 15,
+  borderRadius: 12,
+  marginBottom: 15,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+};
+
+const input = {
+  width: "100%",
+  padding: 10,
+  marginBottom: 10,
+  borderRadius: 8,
+  border: "1px solid #ccc"
+};
+
+const btn = {
+  background: "#2e7d32",
+  color: "white",
+  padding: 10,
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer"
+};
+
+const checkboxBox = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10
+};
+
+const img = {
+  width: "100%",
+  borderRadius: 10,
+  marginTop: 10
+};
 
 export default Events;
