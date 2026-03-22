@@ -155,7 +155,15 @@ const formCard = { background: "#fff", padding: 15, borderRadius: 12, marginBott
 const card = { background: "#fff", padding: 15, borderRadius: 12, marginBottom: 15 };
 const input = { width: "100%", padding: 10, marginBottom: 10 };
 const checkboxBox = { display: "flex", flexWrap: "wrap", gap: 10 };
-const img = { width: "100%", borderRadius: 10, marginTop: 10 };
+const img = { 
+  background: "linear-gradient(135deg, #2b482c, #0be616)",
+  color: "#fff",
+  padding: "10px",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  marginTop: 10 
+};
 
 const btn = {
   background: "linear-gradient(135deg, #2e7d32, #66bb6a)",
